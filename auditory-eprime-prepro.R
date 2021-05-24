@@ -46,6 +46,12 @@ auditory_data_long <-
   select(ss, session, date, time, stim, order, db, rating) %>% # org columns
   arrange(ss, session, stim) # arranges for aesthetics
 
+# Examining data quality
+# ggplot(auditory_data_long, aes(rating)) +
+#   geom_histogram(binwidth = 1)
+# test <- auditory_data_long %>% filter(rating %nin% 0:20)
+# write_csv(test, file = "../output/audio-dq.csv")
+
 # Wide format for Excel users ----
 auditory_data_wide <- 
   auditory_data_long %>% 

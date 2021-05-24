@@ -47,6 +47,11 @@ visual_data_long <-
   select(ss, session, date, time, stim, order, lux, rating) %>% # org columns
   arrange(ss, session, stim) # orders for better viewing
 
+# Examining data quality
+#ggplot(visual_data_long, aes(rating)) +
+#  geom_histogram(binwidth = 1)
+#visual_data_long %>% filter(rating %nin% 0:20)
+
 # Wide format for Excel users ----
 visual_data_wide <- 
   visual_data_long %>% 
