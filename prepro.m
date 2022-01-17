@@ -4,13 +4,13 @@
 
 empathy_workspace_prep % Prepares workspace (see src/...)
 
-subjs = {'274'}; % string({RAW{2:size(RAW,1),1}}); %{'324'}; % Initializes subjects for batch processing (if applicable)
+subjs = {'352'}; % string({RAW{2:size(RAW,1),1}}); %{'324'}; % Initializes subjects for batch processing (if applicable)
 
 % Preprocessing
 for i = 1:length(subjs)
 
     % Creating variables
-    this_subj = dir(strcat(eeg_data_path, "/baseline-visit/", "visual_", subjs(i), "*.vhdr")); % grabs subject info
+    this_subj = dir(strcat(eeg_data_path, "baseline-visit\", "visual_", subjs(i), "*.vhdr")); % grabs subject info
     this_subj.id = strcat('vis-', char(subjs(i))); % eeglab file name
     outname = strcat(this_subj.id,'-prepro.set'); % save out subject name
 

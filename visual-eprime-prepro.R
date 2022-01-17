@@ -13,12 +13,13 @@ lux_conv <- tibble(stim = 1:5, lux = c(1, 30, 60, 90, 120))
 # Loads data ----
 visual_data <- 
   read_delim(
-    file = "../data/eprime/visual/empathy-visual-merge-6-may-2021.txt", 
+    file = "../data/eprime/visual/empathy-visual-merge-17-jan-2022.txt", 
     delim = "\t", # tab delimited
     guess_max = 2000 # this is necessary due to parsing failures
   )
 
 # Preprocesses and cleans them ----
+doubles <- c(22, 33, 44, 55, 66, 77, 88, 99) # for correction done below
 visual_data_long <- 
   visual_data %>%
   select(
@@ -45,12 +46,39 @@ visual_data_long <-
     rating = as.numeric(rating)
     ) %>%
   select(ss, session, date, time, stim, order, lux, rating) %>% # org columns
-  arrange(ss, session, stim) # orders for better viewing
+  arrange(ss, session, stim) %>% # orders for better viewing
 
 # Examining data quality
 #ggplot(visual_data_long, aes(rating)) +
 #  geom_histogram(binwidth = 1)
 #visual_data_long %>% filter(rating %nin% 0:20)
+
+# Explanation from Gabby why ratings can exceed 20:
+# We have to input two numbers to move to the next sound/image, 
+# so if the participant rates the pain a 2 we input 02. However if we hear the 
+# participant say "two" and then automatically press 2, we have to put another 
+# number down for the task to continue. In these situations we always put the 
+# same number twice because it doesn't exist as an answer so we recognize the 
+# error for what it really is. I feel confident in saying you can operate under 
+# the impression that "22" is a "2", "99" is a "9" and "55" is a "5".
+# Therefore, these numbers will be replaced with the singular number version
+  mutate(rating = ifelse(rating %in% doubles, rating %% 10, rating)) %>% # here
+# For the participant that has a rating of 87:
+# Gabby ran this visit with Maggie...The participant was rating the visual tasks 
+# at really high values (18-20) so we asked her if she would like to stop. 
+# She said yes but we had one last visual image left before the task stopped so 
+# we let it play without her watching it and then I put a random number 
+# down (87) to end the task.
+# Therefore, this number will be replaced with NA
+  mutate(rating = ifelse(ss == 252 & rating == 87, NA, rating))
+
+# proof that NA was added and ratings do not exceed 20
+# visual_data_long %>% count(rating) %>% View()
+
+# Visualization for data quality checks ----
+# Baselines
+this_data <- visual_data_long %>% filter(session == 10) 
+
 
 # Wide format for Excel users ----
 visual_data_wide <- 
@@ -64,4 +92,4 @@ write_csv(visual_data_long, file = "../output/visual-data-long.csv") # csv long
 write_csv(visual_data_wide, file = "../output/visual-data-wide.csv") # csv wide
 
 # Cleans up script objects ----
-rm(lux_conv, visual_data, visual_data_long, visual_data_wide)
+rm(lux_conv, visual_data, visual_data_long, visual_data_wide, doubles)

@@ -10,8 +10,8 @@
 
 % Directory paths ----
 % Update these to reflect your machine
-proj_path = 'M:\empathy\public\';
-eeglab_path = 'C:\Users\Matthew\Documents\MATLAB\eeglab2019_1\';
+proj_path = 'C:\Analysis\empathy\public\'; % 'M:\empathy\public\';
+eeglab_path = 'C:\Users\Matt\Documents\MATLAB\eeglab2021.0\'; % 'C:\Users\Matthew\Documents\MATLAB\eeglab2019_1\';
 eeg_data_path = fullfile(proj_path, 'data\eeg\');
 elp_data_path = fullfile(proj_path, 'data\elps\');
 
