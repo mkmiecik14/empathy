@@ -13,7 +13,7 @@ lux_conv <- tibble(stim = 1:5, lux = c(1, 30, 60, 90, 120))
 # Loads data ----
 visual_data <- 
   read_delim(
-    file = "../data/eprime/visual/empathy-visual-merge-17-jan-2022.txt", 
+    file = "../data/eprime/visual/empathy-visual-merge-20-jan-2022.txt", 
     delim = "\t", # tab delimited
     guess_max = 2000 # this is necessary due to parsing failures
   )
@@ -76,20 +76,80 @@ visual_data_long <-
 # visual_data_long %>% count(rating) %>% View()
 
 # Visualization for data quality checks ----
+# UNCOMMENT TO SEE
 # Baselines
-this_data <- visual_data_long %>% filter(session == 10) 
+# this_data <- visual_data_long %>% filter(session == 10) # change to 11 or 12
+# 
+# # Violin plot
+# pj <- position_jitter(width = .15, height = .1)
+# ggplot(this_data, aes(factor(stim), rating)) +
+#   geom_point(position = pj, alpha = 1/2) +
+#   geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .8) + 
+#   theme_minimal()
+# 
+# # linear
+# pj <- position_jitter(width = .15, height = .1)
+# ggplot(this_data, aes(stim, rating)) +
+#   geom_point(position = pj, alpha = 1/2) +
+#   geom_smooth(method = "lm", se = TRUE, color = "red") +
+#   theme_minimal()
 
+# Summary stats
+visual_sum <- 
+  visual_data_long %>% 
+  filter(complete.cases(rating)) %>% # removes missing data points
+  group_by(ss, session) %>%
+  summarise(m = mean(rating), n = n()) %>%
+  ungroup()
+
+#visual_sum %>% filter(session>12)
+
+# modeling slopes
+visual_mods <-
+  visual_data_long %>%
+  nest_by(ss, session) %>%
+  mutate(mod = list(lm(rating ~ 1 + scale(stim, scale = FALSE), data = data)))
+
+visual_ests <-
+  visual_mods %>%
+  summarise(broom::tidy(mod)) %>%
+  ungroup() %>%
+  mutate(
+    term = gsub("\\(Intercept\\)", "mean", term),
+    term = gsub("scale\\(stim, scale = FALSE\\)", "slope", term)
+    )
+
+# proof that intercepts of mean centered reg models are identical to means
+visual_sum %>% 
+  left_join(., visual_ests %>% filter(term == "mean"), by = c("ss", "session"))
+
+# Converting this to wide for excel users
+visual_ests_wide <-
+  visual_ests %>%
+  pivot_wider(id_cols = c(ss, session), names_from = term, values_from = estimate)
 
 # Wide format for Excel users ----
 visual_data_wide <- 
   visual_data_long %>% 
   select(ss, session, stim, rating) %>%
-  pivot_wider(id_cols = c(ss, session), names_from = stim, values_from = rating)
+  pivot_wider(id_cols = c(ss, session), names_from = stim, values_from = rating) %>%
+  left_join(., visual_ests_wide, by = c("ss", "session"))
 
 # Saves out data ----
 save(visual_data_long, file = "../output/visual-data-long.RData") # Rdata long
 write_csv(visual_data_long, file = "../output/visual-data-long.csv") # csv long
+save(visual_data_wide, file = "../output/visual-data-wide.RData") # RData wide
 write_csv(visual_data_wide, file = "../output/visual-data-wide.csv") # csv wide
 
 # Cleans up script objects ----
-rm(lux_conv, visual_data, visual_data_long, visual_data_wide, doubles)
+rm(
+  lux_conv, 
+  visual_data, 
+  visual_data_long, 
+  visual_data_wide, 
+  doubles,
+  visual_ests,
+  visual_ests_wide,
+  visual_mods,
+  visual_sum
+  )
