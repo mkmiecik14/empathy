@@ -1,10 +1,12 @@
 % EEG Preprocessing Pipeline Step 1
-% Specifically for EMPATHY [ fill in with specific task ]
+% Specifically for EMPATHY Visual Task
 % Matt Kmiecik
 
-empathy_workspace_prep % Prepares workspace (see src/...)
+workspace_prep % Prepares workspace (see src/...)
 
-subjs = {'352'}; % string({RAW{2:size(RAW,1),1}}); %{'324'}; % Initializes subjects for batch processing (if applicable)
+% Initializes subjects for batch processing (if applicable)
+subjs = string({RAW{2:size(RAW,1),1}}); % ; %{'324'}; {'352'}
+i=1;
 
 % Preprocessing
 for i = 1:length(subjs)
@@ -21,8 +23,6 @@ for i = 1:length(subjs)
     % Removing EOG and photo channels ----
     EEG = pop_select( EEG, 'nochannel',{'EOG' 'Photo'});
     [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off'); 
-    
-    
     
     % Some participants were accidentally recorded with 64 channels
     % Therefore, these channels need to be deleted for those subjects
