@@ -31,3 +31,9 @@ prepro_outpath = fullfile(main_dir, 'output/1-prepro/');
 if ~exist(prepro_outpath, 'dir')   % checks if directory does not exist
     mkdir(prepro_outpath)          % creates it if it doesn't
 end
+
+% preprocessing output
+ica_outpath = fullfile(main_dir, 'output/2-ica/'); 
+if ~exist(ica_outpath, 'dir')   % checks if directory does not exist
+    mkdir(ica_outpath)          % creates it if it doesn't
+end

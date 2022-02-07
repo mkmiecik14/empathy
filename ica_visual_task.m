@@ -31,10 +31,17 @@ for iter = 1:num_iters
     end
     
     % ICA decomposition ----
-    % compute rank
-    EEG = pop_runica(EEG, 'icatype', 'runica', 'extended',1,'interrupt','on');
+    % computes rank from 64 - 1 (avg mastoid) - n (interpolated chans)
+    this_rank = 64 - 1 - size(interpchans, 2);
+    EEG = pop_runica(EEG, 'icatype', 'runica', 'extended',1,'interrupt','on', 'pca', this_rank);
     
+    % renames dataset
+    dataset_name = strcat('visual-', num2str(this_ss), '-ica');
+    EEG = pop_editset(EEG, 'setname', dataset_name, 'run', []);
     
+    % Saves out data for visual inspection
+    outname = strcat(num2str(this_ss),'-visual-ica.set'); % save out subject name
+    EEG = pop_saveset(EEG, 'filename', outname, 'filepath', ica_outpath);
     
 end
 
