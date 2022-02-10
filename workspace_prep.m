@@ -37,3 +37,9 @@ ica_outpath = fullfile(main_dir, 'output/2-ica/');
 if ~exist(ica_outpath, 'dir')   % checks if directory does not exist
     mkdir(ica_outpath)          % creates it if it doesn't
 end
+
+% spectral results output
+spec_res_outpath = fullfile(main_dir, 'output/3-spec-res/'); 
+if ~exist(spec_res_outpath, 'dir')   % checks if directory does not exist
+    mkdir(spec_res_outpath)          % creates it if it doesn't
+end
