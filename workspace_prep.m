@@ -25,6 +25,8 @@ mkdir(output_dir); % making the output dir
 
 % Variables ----
 dig_file = 'C:\\Projects\\empathy\\data\\digitizer\\template-dig.elp';
+chan_loc_path = 'C:\Projects\empathy\data\CACS-64-X7_M43-V1_no-REF.bvef';
+chan_loc_path2 = 'C:\Projects\empathy\data\CACS-64-X7_M43-V1.bvef';
 
 % preprocessing output
 prepro_outpath = fullfile(main_dir, 'output/1-prepro/'); 

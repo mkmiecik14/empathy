@@ -6,7 +6,7 @@ workspace_prep % Prepares workspace
 
 % Preprocessing ----
 num_iters = size(NUM, 1);
-iter=1; % for testing purposes
+%iter=1; % for testing purposes
 
 for iter = 1:num_iters
     
@@ -31,8 +31,8 @@ for iter = 1:num_iters
     end
     
     % ICA decomposition ----
-    % computes rank from 64 - 1 (avg mastoid) - n (interpolated chans)
-    this_rank = 64 - 1 - size(interpchans, 2);
+    % computes rank from EEG.nbchan( == 62) - n (interpolated chans)
+    this_rank = EEG.nbchan - size(interpchans, 2);
     EEG = pop_runica(EEG, 'icatype', 'runica', 'extended',1,'interrupt','on', 'pca', this_rank);
     
     % renames dataset

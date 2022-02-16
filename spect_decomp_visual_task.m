@@ -8,11 +8,12 @@ workspace_prep % Prepares workspace
 num_iters = size(NUM, 1);
 iter=1; % for testing purposes 
 csd_switch = 1; % 1 == CSD will be computed
+plot_switch = 0; % 1 == PSD plots will be saved
 
-% Credit: https://github.com/dazza-codes/bioelectromagnetism/blob/master/elec_sph2cart.m
-[X,Y,Z] = elec_sph2cart(theta,phi,r,degrees)
-
-[X,Y,Z] = elec_sph2cart(0, 0, 1, 1)
+% Loads info for new electrode coordinates ----
+% Loads in excel file with theta and phi from Easycap
+% [eNUM,eTXT,eRAW] = xlsread('data/easycap_elec_positions.xlsx');
+% load('output/easycap_xyz.mat'); % loads XYZ cartesian coordinates
 
 for iter = 1:num_iters
     
@@ -38,41 +39,32 @@ for iter = 1:num_iters
     % removes artifactual ICs
     this_reject = find(EEG.reject.gcompreject);
     EEG = pop_subcomp(EEG, this_reject, 0);
-    
+   
     if csd_switch == 1
     
-        % Compute surface laplacian spatial filter ----
-        % Calculating Surface Laplacian via CSD toolbox functions
-        % http://psychophysiology.cpmc.columbia.edu/software/CSDtoolbox/tutorial.html#PrepareInput
-        chan_mont = cell(64,1); % initializes cell array
+    % Compute surface laplacian spatial filter ----
+    % Calculating Surface Laplacian via CSD toolbox functions
+    % http://psychophysiology.cpmc.columbia.edu/software/CSDtoolbox/tutorial.html#PrepareInput
+    % I first saved the template channel locations from easycap as a 
+    % *.ced into 'output/easycap.ced'). Then I used the CSD Toolbox
+    % function to convert from *.ced to *.csd:
+    % ConvertLocations('output/easycap.ced') % not run here
 
-        % Fills cell array with electrode labels
-        for j = 1:size(chan_mont)
-            chan_mont(j) = cellstr(EEG.chanlocs(j).labels);
-        end
+    % Next, I derived the spherical coordinates via CSD toolbox fx 
+    % ExtractMontage() using the converted *.csd and the labels:
+    M = ExtractMontage('output/easycap.csd', {EEG.chanlocs.labels}');
 
-        % Derives spherical coordinates via CSD toolbox fx ExtractMontage()
-        % csd_mont = ExtractMontage('10-5-System_Mastoids_EGI129.csd', chan_mont);
-        % To view: MapMontage(csd_mont)
-        lab = {EEG.chanlocs.labels};
-        theta = [EEG.chanlocs.theta]';
-        phi = [EEG.chanlocs.sph_phi]';
-        xy = [EEG.chanlocs.X; EEG.chanlocs.Y]';
+    % To plot the montage to ensure accuracy:
+    % MapMontage(M)
 
-        % Creates the M variable for CSD calculations
-        M.lab = lab;
-        M.theta = theta;
-        M.phi = phi;
-        M.xy = xy;
-        MapMontage(M)
+    [G, H] = GetGH(M); % Calculates G and H matrices
 
-        [G, H] = GetGH(M); % Calculates G and H matrices
-
-        % Applies surface laplacian to EEG data
-        EEG.data = CSD(EEG.data, G, H, 1.0e-5, 10); % lambda left at default, 10 = cm head size, so units are microvolt/cm^2
+    % Applies surface laplacian to EEG data
+    % lambda left at default, 10 = cm head size, so units are microvolt/cm^2
+    EEG.data = CSD(EEG.data, G, H, 1.0e-5, 10); 
     
     else
-        disp('CSD skipped ...');
+        disp('CSD skipped....');
     end
     
     % Spectral decomposition ----
@@ -93,12 +85,16 @@ for iter = 1:num_iters
             'winsize', 2*this_EEG.srate, ... % winsize is 2 seconds
             'overlap', this_EEG.srate, ... % overlap is 1 second
             'plot','off'... % toggles plot
-            ); 
-        % troubleshooting plot
-        figure; pop_spectopo(this_EEG,1,[],'EEG','freq',[10 12 24 25 50],'freqrange',[0 75],'electrodes','on');
-        saveas(gcf, fullfile(spec_res_outpath, strcat(num2str(this_ss),'-',num2str(j),'.png')));
-        close; % closes figure
+            );
         
+        % troubleshooting plots
+        if plot_switch == 1
+            figure; pop_spectopo(this_EEG,1,[],'EEG','freq',[10 12 24 25 50],'freqrange',[0 75],'electrodes','on');
+            saveas(gcf, fullfile(spec_res_outpath, strcat(num2str(this_ss),'-',num2str(j),'.png')));
+            close; % closes figure
+        else
+            % plots not saved
+        end
     end
     
     % Saving out results ----

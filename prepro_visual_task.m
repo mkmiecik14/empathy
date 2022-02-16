@@ -10,7 +10,7 @@ num_iters = size(NUM, 1);
 
 for iter = 1:num_iters
     
-    % Creating variables
+    % Creating variables ----
     this_ss = NUM(iter);
     this_ss_path = dir(fullfile(data_dir, num2str(this_ss), 'v*.vhdr'));
     this_ss_name = this_ss_path.name;
@@ -20,35 +20,27 @@ for iter = 1:num_iters
     [ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 0,'setname',this_ss_name,'gui','off');
     eeglab redraw
     
-    % Checks to see if participant has correct number of channels
+    % Checks to see if participant has correct number of channels ----
     if EEG.nbchan < 64
         disp("This participant has < 64 channels");
     end
     
-    % Deleting EOG and Photo
+    % Deleting EOG and Photo channels ----
     EEG = pop_select( EEG, 'nochannel',{'EOG','Photo'});
     [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off');
-        
-    % Deleting Channel 10 for consistency
-    % This is because channel 10 is digitized but is not in the raw data
-    % because it serves as a reference
-    %EEG = pop_select( EEG, 'nochannel',{'Ch10'});
-    %[ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off');
-        
-    % Importing channel locations
-    % usetemplate-dig
-    EEG=pop_chanedit(EEG, 'load', ...
-        {dig_file,...
-        'filetype','autodetect'},'changefield',{4,'datachan',0},...
-        'changefield',{37,'datachan',0});
-    [ALLEEG EEG] = eeg_store(ALLEEG, EEG, CURRENTSET);
+    
+    % Importing channel locations ----
+    % uses the template file that came with the easycaps
+    chanlocs = loadbvef(chan_loc_path); % without reference
+    EEG.chanlocs = chanlocs(2:65); % does not include ground (GND)
 
-    % Removing DC offset by subtracting the mean signal from each electrode
-     EEG = pop_rmbase(EEG, [],[]);
+    % Removing DC offset ----
+    % subtracts the mean signal from each electrode
+    EEG = pop_rmbase(EEG, [],[]);
 
     % Re-referencing ----
     % Averaged mastoid reference
-    EEG = pop_reref(EEG, [31 63] ,'keepref', 'on');
+    EEG = pop_reref(EEG, [31 63] ,'keepref', 'off');
    
     % Downsampling to 256 Hz ----
     EEG = pop_resample(EEG, 256);
@@ -57,7 +49,7 @@ for iter = 1:num_iters
     EEG = pop_eegfiltnew(EEG,'locutoff',2,'plotfreqz',0);
 
     % Cleanline - Removing electrical line noise @ 60 Hz
-     EEG = pop_cleanline(EEG, 'bandwidth',2,'chanlist',[1:EEG.nbchan],...
+    EEG = pop_cleanline(EEG, 'bandwidth',2,'chanlist',[1:EEG.nbchan],...
          'computepower',1,'linefreqs',60,'normSpectrum',0,'p',0.01,'pad',...
          2,'plotfigures',0,'scanforlines',1,'sigtype','Channels',...
          'tau',100,'verb',1,'winsize',4,'winstep',1);
@@ -69,4 +61,5 @@ for iter = 1:num_iters
     % Saves out data for visual inspection
     outname = strcat(num2str(this_ss),'-visual-prepro.set'); % save out subject name
     EEG = pop_saveset( EEG, 'filename', outname, 'filepath' ,prepro_outpath);
+    
 end
