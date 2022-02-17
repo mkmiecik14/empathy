@@ -1,4 +1,5 @@
 % EEG Preprocessing Pipeline Step 1
+% This was for the topomaps created for Halloween cards to the participants
 % Sarah Darnell, Kaela Harber, & Matt Kmiecik
 % Started 5 OCTOBER 2021
 

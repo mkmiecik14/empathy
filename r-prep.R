@@ -1,13 +1,16 @@
 # R preparation script
 # Matt Kmiecik
-# Started 6 May 2021
+# Started 17 FEB 2022
 
 # Purpose: to prepare the R workspace
 # Any packages, functions, variables, etc. that are used across scripts are
 # coded in here to reduce redundancy of code
 
 # Libraries ----
-library(tidyverse); library(Hmisc)
+library(tidyverse)
+library(Hmisc)
+library(R.matlab)
+library(readxl)
 
 # Plotting Tools ----
 # use geom_flat_violin()
