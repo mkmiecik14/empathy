@@ -8,7 +8,7 @@ workspace_prep % Prepares workspace
 num_iters = size(NUM, 1); % number of participants in this batch
 iter=1; % for testing purposes 
 csd_switch = 1; % 1 == CSD will be computed
-plot_switch = 0; % 1 == PSD plots will be saved
+plot_switch = 1; % 1 == PSD plots will be saved
 
 for iter = 1:num_iters
     
@@ -72,9 +72,16 @@ for iter = 1:num_iters
     this_spectra = zeros(EEG.nbchan, EEG.srate+1, length(blocks));
     this_freqs = zeros(EEG.srate+1, 1, length(blocks));
     
+    % If data were recorded in the big room, then epochs are adjusted:
+    if NUM(iter, 3) == 0
+        this_epoch = [4 24]; % epochs are shifted by four seconds in big room
+    else
+        this_epoch = [0 20]; % small room e-prime script has correct timing
+    end
+    
     for j = 1:length(blocks)
         % Selects blocks (in order)
-        this_EEG = pop_epoch(EEG, blocks(j), [0 20],'epochinfo', 'yes');
+        this_EEG = pop_epoch(EEG, blocks(j), this_epoch,'epochinfo', 'yes');
         % Spectral decomposition here
         [this_spectra(:,:,j), this_freqs(:,:,j)] = spectopo(...
             this_EEG.data(:,:), ... 
