@@ -61,5 +61,7 @@ for iter = 1:num_iters
     % Saves out data for visual inspection
     outname = strcat(num2str(this_ss),'-visual-prepro.set'); % save out subject name
     EEG = pop_saveset( EEG, 'filename', outname, 'filepath' ,prepro_outpath);
+   
+    eeglab redraw % redraws to GUI for convenience
     
 end
