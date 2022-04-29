@@ -43,7 +43,11 @@ psd_res <-
       mutate(name = rep(freqs, 5*length(chan_locs$labels))),
     .id = "ss_i"
       ) %>%
-  mutate(ss_i = as.numeric(ss_i)) %>% # convert to number
+  # converts to numeric
+  mutate(
+    ss_i = as.numeric(ss_i),
+    stim = as.numeric(stim)
+    ) %>% 
   left_join(., subject_joiner, by = "ss_i") %>% # joins with subject numbers
   rename(freq = name, psd = value) %>% # renaming
   select(ss, stim, elec, freq, psd) # reordering + deselecting (ss_i)
