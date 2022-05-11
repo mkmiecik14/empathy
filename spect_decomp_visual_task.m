@@ -72,16 +72,16 @@ for iter = 1:num_iters
     this_spectra = zeros(EEG.nbchan, EEG.srate+1, length(blocks));
     this_freqs = zeros(EEG.srate+1, 1, length(blocks));
     
-    % If data were recorded in the big room, then epochs are adjusted:
+    % If data were recorded in the small room, then epochs are adjusted:
     if NUM(iter, 3) == 0
-        this_epoch = [4 24]; % epochs are shifted by four seconds in big room
+        this_epoch = [4 24]; % epochs are shifted by four seconds in small room
     else
-        this_epoch = [0 20]; % small room e-prime script has correct timing
+        this_epoch = [0 20]; % big room e-prime script has correct timing
     end
     
     for j = 1:length(blocks)
         % Selects blocks (in order)
-        this_EEG = pop_epoch(EEG, blocks(j), this_epoch,'epochinfo', 'yes');
+        this_EEG = pop_epoch(EEG,blocks(j),this_epoch,'epochinfo', 'yes');
         % Spectral decomposition here
         [this_spectra(:,:,j), this_freqs(:,:,j)] = spectopo(...
             this_EEG.data(:,:), ... 
