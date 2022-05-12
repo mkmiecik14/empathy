@@ -6,7 +6,7 @@ workspace_prep % Prepares workspace
 
 % Preprocessing ----
 num_iters = size(NUM, 1);
-iter = 2; % for testing purposes only
+iter = 4; % for testing purposes only
 
 for iter = 1:num_iters
     

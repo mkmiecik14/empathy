@@ -14,9 +14,19 @@ for iter = 1:num_iters
     this_ss = NUM(iter);
     this_ss_path = dir(fullfile(prepro_outpath, strcat(num2str(this_ss), '-visual-prepro.set')));
     this_ss_name = this_ss_path.name;
-        
+    
+    % Checks to see if the a visually inspected and rejected file exists
+    % (i.e., if sections of the EEG were rejected due to noise)
+    this_ss_vis_rej = strcat(num2str(this_ss), '-visual-prepro-vis-rej.set');
+    if isfile(fullfile(prepro_outpath, this_ss_vis_rej))
+     % File exists...load in the visually inspected and rejected file
+     % Loads in raw data using EEGLAB ----
+    EEG = pop_loadset('filename',this_ss_vis_rej,'filepath', this_ss_path.folder);
+    else
+     % File does not exist...load standard file
     % Loads in raw data using EEGLAB ----
     EEG = pop_loadset('filename',this_ss_name,'filepath', this_ss_path.folder);
+    end
     
     % If there were any bad channels identified during inspection, they are
     % imported here:

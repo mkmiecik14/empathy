@@ -6,7 +6,7 @@ workspace_prep % Prepares workspace
 
 % Preallocation ----
 num_iters = size(NUM, 1); % number of participants in this batch
-iter=1; % for testing purposes 
+iter=15; % for testing purposes 
 csd_switch = 1; % 1 == CSD will be computed
 plot_switch = 1; % 1 == PSD plots will be saved
 
@@ -35,6 +35,7 @@ for iter = 1:num_iters
     % Removes artifactual ICs
     this_reject = find(EEG.reject.gcompreject);
     EEG = pop_subcomp(EEG, this_reject, 0);
+    eeglab redraw
    
     if csd_switch == 1
     
@@ -80,25 +81,34 @@ for iter = 1:num_iters
     end
     
     for j = 1:length(blocks)
-        % Selects blocks (in order)
-        this_EEG = pop_epoch(EEG,blocks(j),this_epoch,'epochinfo', 'yes');
-        % Spectral decomposition here
-        [this_spectra(:,:,j), this_freqs(:,:,j)] = spectopo(...
-            this_EEG.data(:,:), ... 
-            0, ... % frames per epoch
-            this_EEG.srate, ... % sampling rate
-            'winsize', 2*this_EEG.srate, ... % winsize is 2 seconds
-            'overlap', this_EEG.srate, ... % overlap is 1 second
-            'plot','off'... % toggles plot
-            );
-        % Plots for troubleshooting (if needed)
-        if plot_switch == 1
-            figure; pop_spectopo(this_EEG,1,[],'EEG','freq',[10 12 24 25 50],'freqrange',[0 75],'electrodes','on');
-            saveas(gcf, fullfile(spec_res_outpath, strcat(num2str(this_ss),'-',num2str(j),'.png')));
-            close; % closes figure
-        else
-            % plots not saved
+       
+        try % This will run if the block exists
+            % Selects blocks (in order)
+            this_EEG = pop_epoch(EEG,blocks(j),this_epoch,'epochinfo', 'yes');
+            % Spectral decomposition here
+            [this_spectra(:,:,j), this_freqs(:,:,j)] = spectopo(...
+                this_EEG.data(:,:), ... 
+                0, ... % frames per epoch
+                this_EEG.srate, ... % sampling rate
+                'winsize', 2*this_EEG.srate, ... % winsize is 2 seconds
+                'overlap', this_EEG.srate, ... % overlap is 1 second
+                'plot','off'... % toggles plot
+                );
+            % Plots for troubleshooting (if needed)
+            if plot_switch == 1
+                figure; pop_spectopo(this_EEG,1,[],'EEG','freq',[10 12 24 25 50],'freqrange',[0 75],'electrodes','on');
+                saveas(gcf, fullfile(spec_res_outpath, strcat(num2str(this_ss),'-',num2str(j),'.png')));
+                close; % closes figure
+            else
+                % plots not saved
+            end
+        
+        catch % if the block is missing, then the matrix is filled with NaN
+            this_spectra(:,:,j) = NaN; % fills with missing values
+            this_freqs(:,:,j) = NaN; % fills with missing values
+     
         end
+            
     end
     
     % Saving out results ----
