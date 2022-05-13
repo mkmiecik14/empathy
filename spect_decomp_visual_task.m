@@ -6,7 +6,7 @@ workspace_prep % Prepares workspace
 
 % Preallocation ----
 num_iters = size(NUM, 1); % number of participants in this batch
-iter=15; % for testing purposes 
+iter=2; % for testing purposes 
 csd_switch = 1; % 1 == CSD will be computed
 plot_switch = 1; % 1 == PSD plots will be saved
 
@@ -68,20 +68,38 @@ for iter = 1:num_iters
     % Epoching ----
     % selecting the stimulation blocks (20 second epochs)
     blocks = {'S  1' 'S  2' 'S  3' 'S  4' 'S  5'};
+    blocks_end = {'S 31' 'S 32' 'S 33' 'S 34' 'S 35'};
     
     % preallocates arrays
     this_spectra = zeros(EEG.nbchan, EEG.srate+1, length(blocks));
     this_freqs = zeros(EEG.srate+1, 1, length(blocks));
     
-    % If data were recorded in the small room, then epochs are adjusted:
-    if NUM(iter, 3) == 0
-        this_epoch = [4 24]; % epochs are shifted by four seconds in small room
-    else
-        this_epoch = [0 20]; % big room e-prime script has correct timing
+    % TO DO: In order for this script to accomodate rejected epochs, the
+    % epoch start stop must be determined by a starting trigger "S  1" and
+    % its ending "S  31"
+    
+    % Getting start and stop latencies of the stimulation blocks
+    start_times = zeros(1, length(blocks)); % initializes vector
+    end_times = start_times; % initializes vector
+    for k = 1:length(blocks)
+        % Retrieving the latency (in seconds) of each block start
+        start_times(1,k) = (eeg_getepochevent(EEG, blocks(k), [], 'latency'))/1000;
+        % Retrieving the latency (in seconds) of each block end
+        end_times(1,k) = (eeg_getepochevent(EEG, blocks_end(k), [], 'latency'))/1000;
     end
     
+    % Calculates the duration of each block (in order)
+    block_durations = round(end_times - start_times);
+    
     for j = 1:length(blocks)
-       
+        
+        % If data were recorded in the small room, then epochs are adjusted:
+        if NUM(iter, 3) == 0
+            this_epoch = [4 block_durations(j)]; % epochs are shifted by four seconds in small room
+        else
+            this_epoch = [0 block_durations(j)]; % big room e-prime script has correct timing
+        end
+        
         try % This will run if the block exists
             % Selects blocks (in order)
             this_EEG = pop_epoch(EEG,blocks(j),this_epoch,'epochinfo', 'yes');

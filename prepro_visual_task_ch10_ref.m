@@ -21,7 +21,7 @@ for iter = 1:num_iters
     % Loads in raw data using loadbv() from BrainVision plugin ----
     EEG = pop_loadbv(this_ss_path.folder, this_ss_name, [], []);
     [ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 0,'setname',this_ss_name,'gui','off');
-    eeglab redraw
+    %eeglab redraw
     
     % Deleting EOG and Photo channels ----
     EEG = pop_select( EEG, 'nochannel',{'EOG','Photo'});
