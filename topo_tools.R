@@ -116,9 +116,21 @@ topo_plot <-
     color_pal =  brewer.pal(n = 9, "Purples"),
     color_pal_limits = c(-30, -10),
     color_pal_breaks = c(-30, -20, -10),
-    legend_name = "DV"
+    legend_name = "DV",
+    elec_shape_col = NULL,
+    elec_shapes = NULL
     ){
   
+    # looks to see if elec_shape_col has an entry
+    if(is.null(elec_shape_col)){
+      elec_shape_plot <- geom_point(data = orig_data, aes(x, y), size = electrode_size)
+      elec_shapes_manual <- scale_shape_manual(values = c(19))
+    }
+    else{
+      elec_shape_plot <- geom_point(data = orig_data, aes(x, y, shape = {{elec_shape_col}}), size = electrode_size)
+      elec_shapes_manual <- scale_shape_manual(values = elec_shapes)
+    }
+    
     plot <- 
       ggplot(interp_data, aes(x = x, y = y, fill = {{dv}})) +
       coord_equal() + # equalizes coordinates
@@ -134,8 +146,8 @@ topo_plot <-
       theme_topo() + # topo theme is added (white background etc.)
       # plots headshape
       geom_path(data = headShape, aes(x, y, z = NULL, fill = NULL), size = headshape_size) +
-      geom_point(data = orig_data, aes(x, y), size = electrode_size) + # plots elecs
-      scale_shape_manual(values = c(19)) + # all were sig
+      elec_shape_plot + # see flag above
+      elec_shapes_manual + # see flag above
       # plots nose
       geom_path(data = nose, aes(x, y, z = NULL, fill = NULL), size = nose_size) +
       # colors here

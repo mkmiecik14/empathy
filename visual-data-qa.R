@@ -7,11 +7,10 @@
 
 # Prepares workspace
 source("r-prep.R")
+source("topo_tools.R") # tools for plotting EEG topographies
 
 # Loads data
 load("../output/psd-res.rda") # spectral data
-# load("../output/chan-locs.rda") # channel location data
-# later load visual unpleasantness data when ready
 
 ggplot(psd_res %>% filter(elec == 28), aes(freq, psd, group = ss)) +
   coord_cartesian(xlim = c(0, 30)) +
