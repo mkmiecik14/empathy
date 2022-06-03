@@ -10,7 +10,7 @@ source("r-prep.R")
 
 # Loads data
 load("../output/psd-res.rda") # spectral data
-load("../output/chan-locs.rda") # channel location data
+# load("../output/chan-locs.rda") # channel location data
 # later load visual unpleasantness data when ready
 
 ggplot(psd_res %>% filter(elec == 28), aes(freq, psd, group = ss)) +
@@ -33,10 +33,33 @@ psd_res_sum <-
   ) %>%
   ungroup()
 
+# Electrode 28
 ggplot(psd_res_sum %>% filter(elec == 28), aes(freq, m)) +
   geom_ribbon(aes(ymin = ll, ymax = ul), fill = "grey") +
   geom_line(size = 1) + 
-  coord_cartesian(xlim = c(0, 30))
+  coord_cartesian(xlim = c(0, 30)) +
   facet_wrap(~stim)
 
+# Looking at a topo map of 25Hz power across all subjects
+hz_25_data <- 
+  psd_res_sum %>% 
+  filter(freq==25) %>%
+  left_join(., elec_locs, by = c("elec" = "labels"))
+
+# interpolates data for topo
+hz_25_data_interp <- 
+  hz_25_data %>%
+  split(.$stim) %>%
+  map_dfr(~topo_interp(data = .x, dv = "m", gridRes = 67), .id = "stim") %>%
+  as_tibble(.)
+
+# Average 25Hz signal
+topo_plot(
+  orig_data = hz_25_data, 
+  interp_data = hz_25_data_interp, 
+  dv = m,
+  legend_name = "Power Spectral Density (dB)",
+  electrode_size = 1
+  ) +
+  facet_wrap(~stim, nrow = 1)
 
