@@ -105,7 +105,7 @@ topo_plot <-
     orig_data = orig_data, # original data
     interp_data = interp_data, # interpolated data
     dv = dv, # name of the column that has the values to plot
-    maskRing = circleFun(diameter = 1.75), # creates the mask
+    maskRing = circleFun(diameter = 1.7), # creates the mask
     contour_alpha = 1/3, # alpha level of contour lines
     contour_color = "black", # color of contour lines
     headshape_size = .25, # headshape size
@@ -121,15 +121,15 @@ topo_plot <-
     elec_shapes = NULL
     ){
   
-    # looks to see if elec_shape_col has an entry
-    if(is.null(elec_shape_col)){
-      elec_shape_plot <- geom_point(data = orig_data, aes(x, y), size = electrode_size)
-      elec_shapes_manual <- scale_shape_manual(values = c(19))
-    }
-    else{
-      elec_shape_plot <- geom_point(data = orig_data, aes(x, y, shape = {{elec_shape_col}}), size = electrode_size)
-      elec_shapes_manual <- scale_shape_manual(values = elec_shapes)
-    }
+    # # looks to see if elec_shape_col has an entry
+    # if(is.null(elec_shape_col)){
+    #   elec_shape_plot <- geom_point(data = orig_data, aes(x, y), size = electrode_size)
+    #   elec_shapes_manual <- scale_shape_manual(values = c(19))
+    # }
+    # else{
+    #   elec_shape_plot <- geom_point(data = orig_data, aes(x, y, shape = {{elec_shape_col}}), size = electrode_size)
+    #   elec_shapes_manual <- scale_shape_manual(values = elec_shapes)
+    # }
     
     plot <- 
       ggplot(interp_data, aes(x = x, y = y, fill = {{dv}})) +
@@ -146,8 +146,6 @@ topo_plot <-
       theme_topo() + # topo theme is added (white background etc.)
       # plots headshape
       geom_path(data = headShape, aes(x, y, z = NULL, fill = NULL), size = headshape_size) +
-      elec_shape_plot + # see flag above
-      elec_shapes_manual + # see flag above
       # plots nose
       geom_path(data = nose, aes(x, y, z = NULL, fill = NULL), size = nose_size) +
       # colors here
@@ -162,6 +160,8 @@ topo_plot <-
         oob = squish,
         name = legend_name
       ) + 
+      geom_point(data = orig_data, aes(x, y, shape = {{elec_shape_col}}), size = electrode_size) +
+      scale_shape_manual(values = elec_shapes) +
       guides(
         shape = "none", 
         fill = guide_colourbar(

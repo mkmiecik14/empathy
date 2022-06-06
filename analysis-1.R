@@ -51,7 +51,7 @@ max_mod_ests_clean <-
   group_by(term) %>%
   mutate(
     p.fdr = p.adjust(p.value, method = "fdr"),
-    sig.fdr = p.fdr>.05
+    sig.fdr = p.fdr<.05
     ) %>%
   ungroup() %>%
   left_join(., elec_locs, by = c("elec" = "labels"))
@@ -71,10 +71,12 @@ topo_plot(
   interp_data = max_mod_ests_clean_interp %>% filter(term == "Intercept"), 
   dv = estimate,
   legend_name = "Power Spectral Density (dB)",
-  electrode_size = 1,
+  electrode_size = 1.5,
   color_pal_limits = c(-30, -15),
   color_pal_breaks = seq(-30, -15, 5),
-  bwidth = 2
+  bwidth = 2,
+  elec_shape_col = sig.fdr,
+  elec_shapes = c(16)
 ) 
 
 # plots slopes
@@ -85,13 +87,13 @@ topo_plot(
   interp_data = max_mod_ests_clean_interp %>% filter(term == "brightness"), 
   dv = estimate,
   legend_name = "Brightness Intensity Slope",
-  electrode_size = 1,
+  electrode_size = 1.5,
   color_pal_limits = c(-1.5, 1.5),
   color_pal_breaks = seq(-1.5, 1.5, .5),
   bwidth = 2,
   color_pal = rev(brewer.pal(n = 11, "RdGy")),
-  elec_shape_col = sig.fdr, # TRY TO GET THIS TO WORK
-  elec_shapes = c(1, 2)
+  elec_shape_col = sig.fdr,
+  elec_shapes = c(1, 16)
 ) 
 
 
@@ -99,3 +101,33 @@ summary(hz_25_mod$max_mod[[1]])
 performance(hz_25_mod$max_mod[[1]])
 check_model(hz_25_mod$max_mod[[1]])
 anova(hz_25_mod$min_mod[[1]], hz_25_mod$max_mod[[1]]) # compares against model without moderators
+
+
+# Model comparison data
+mod_compare_ests <- 
+  hz_25_mod %>% 
+  summarise(broom::tidy(anova_mod)) %>%
+  ungroup() %>%
+  filter(term == "max_mod") %>%
+  mutate(sig = p.value<.05) %>%
+  left_join(., elec_locs, by = c("elec" = "labels"))
+
+# interpolates data for topo
+mod_compare_ests_interp <- 
+  topo_interp(data = mod_compare_ests, dv = "statistic", gridRes = 67)
+
+# plots stats
+min(mod_compare_ests$statistic); max(mod_compare_ests$statistic)
+topo_plot(
+  orig_data = mod_compare_ests, 
+  interp_data = mod_compare_ests_interp, 
+  dv = statistic,
+  legend_name = "Model Comparison \n (Chi-Square)",
+  electrode_size = 1.5,
+  color_pal_limits = c(0, 60),
+  color_pal_breaks = seq(0, 60, 10),
+  bwidth = 2,
+  color_pal = brewer.pal(n = 9, "Blues"),
+  elec_shape_col = sig,
+  elec_shapes = c(1, 16)
+) 
