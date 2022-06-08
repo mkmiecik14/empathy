@@ -13,6 +13,67 @@ source("topo_tools.R") # gets functions for plotting topos
 # Loads data
 load("../output/psd-res.rda") # spectral data
 
+# Averaging electrodes 17, 47, 48, and 28 for V1 coverage
+v1 <- c(17, 47, 48, 28)
+# Averages electrodes together
+v1_psd_ss <- 
+  psd_res %>%
+  filter(elec %in% v1) %>%
+  filter(complete.cases(psd)) %>%
+  group_by(ss, stim, freq) %>%
+  summarise(m = mean(psd), n = n()) %>%
+  ungroup()
+# Averages the stim conditions together
+v1_psd_ss_2 <-
+  v1_psd_ss %>%
+  group_by(ss, freq) %>%
+  summarise(
+    M = mean(m),
+    N = n()
+  ) %>%
+  ungroup()
+# Averages the participants
+v1_psd_sum <- 
+  v1_psd_ss_2 %>%
+  group_by(freq) %>%
+  summarise(
+    m = mean(M),
+    sd = sd(M),
+    n = n(),
+    sem = sd/sqrt(n),
+    ll = quantile(M, .025),
+    ul = quantile(M, .975)
+  ) %>%
+  ungroup()
+
+v1_psd_plot <- 
+  ggplot(v1_psd_sum, aes(freq, m)) +
+  #geom_ribbon(aes(ymin = m+sem, ymax = m-sem), alpha = 1/3) +
+  geom_vline(xintercept = 25, color = "red", linetype = 2, size = 1, alpha = 1/2) +
+  geom_path(size = 1) +
+  labs(
+    x = "Frequency", 
+    y = "Power Spectral Density (dB)", 
+    title = "V1 Averaged Across Brightness Intensity"
+    ) +
+  scale_x_continuous(limits = c(0, 30), breaks = seq(0, 30, 5), minor_breaks = NULL) +
+  scale_y_continuous(limits = c(-35, -5), minor_breaks = NULL) +
+  theme_bw() 
+
+v1_topo <-  
+  ggplot(headShape, aes(x, y)) +
+    geom_path() +
+    geom_point(
+      data = elec_locs %>% filter(labels %in% v1), 
+      aes(x, y), 
+      size = 2
+      ) +
+    geom_line(data = nose, aes(x, y, z = NULL)) +
+    theme_topo() +
+    coord_equal()
+
+v1_psd_plot | v1_topo
+
 # Linear mixed effect modeling (PSD ~ brightness intensity)
 # Prepping data
 hz_25_data <- 
