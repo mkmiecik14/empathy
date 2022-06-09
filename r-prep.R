@@ -21,6 +21,9 @@ library(lme4) # stats
 library(broomExtra) # stats
 library(lmerTest) # stats
 library(performance) # stats
+library(effectsize) # stats
+library(MuMIn) # stats
+library(r2glmm) # stats
 
 # Plotting Tools
 # use geom_flat_violin()

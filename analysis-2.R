@@ -238,6 +238,42 @@ topo_plot(
   elec_shapes = c(1, 16)
 )
 
+# Looking at partial variance explained
+# this is not straitforward in linear mixed models:
+# https://stats.stackexchange.com/questions/358927/compute-partial-eta2-for-all-fixed-effects-anovas-from-a-lme4-model
+# The marginal R squared (R2m) can be interpreted as the variance explained by 
+# all fixed effects in the model, the conditional R squared (R2c) estimates the 
+# variance explained by all fixed effects and all random effects in the model 
+# taken together.
+MuMIn::r.squaredGLMM(vis_mods$max_mod[[1]])
+r2glmm::r2beta(vis_mods$max_mod[[1]], partial = TRUE)
+
+partial_r2 <- 
+  1:62 %>%
+  map_dfr(~r2glmm::r2beta(vis_mods$max_mod[[.x]], partial = TRUE), .id = "elec") %>%
+  as_tibble(.) %>%
+  mutate(elec = as.numeric(elec)) %>%
+  left_join(., elec_locs, by = c("elec" = "labels"))
+
+ggplot(headShape, aes(x, y)) +
+  geom_path() +
+  geom_text(data = partial_r2 %>% filter(Effect == "psd_mc"), aes(x, y, label = round(Rsq*100, 2))) +
+  geom_line(data = nose, aes(x, y, z = NULL)) +
+  theme_topo() +
+  coord_equal()
+
+ggplot(headShape, aes(x, y)) +
+  geom_path() +
+  geom_point(data = partial_r2 %>% filter(Effect == "psd_mc"), aes(x, y, size = round(Rsq*100, 2))) +
+  geom_line(data = nose, aes(x, y, z = NULL)) +
+  theme_topo() +
+  coord_equal()
+
+partial_r2 %>% 
+  split(.$Effect) %>%
+  map(~topo_interp(data = .x, dv = "Rsq", gridRes = 67))# not working for some reason
+
+
 # looking at psd slopes - line graphs
 max_mod_aug <- 
   vis_mods %>% 
