@@ -25,6 +25,10 @@ library(effectsize) # stats
 library(MuMIn) # stats
 library(r2glmm) # stats
 
+# For the API configuration
+library(httr)
+library(jsonlite)
+
 # Plotting Tools
 # use geom_flat_violin()
 # see: https://neuroconscience.wordpress.com/2018/03/15/introducing-raincloud-plots/

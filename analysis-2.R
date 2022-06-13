@@ -238,6 +238,17 @@ topo_plot(
   elec_shapes = c(1, 16)
 )
 
+# pvals
+ggplot(headShape, aes(x, y)) +
+  geom_path() +
+  geom_text(
+    data = max_mod_ests_clean %>% filter(term == "psd"), 
+    aes(x, y, label = round(p.fdr, 3))
+    ) +
+  geom_line(data = nose, aes(x, y, z = NULL)) +
+  theme_topo() +
+  coord_equal()
+
 # Looking at partial variance explained
 # this is not straitforward in linear mixed models:
 # https://stats.stackexchange.com/questions/358927/compute-partial-eta2-for-all-fixed-effects-anovas-from-a-lme4-model
@@ -250,7 +261,7 @@ r2glmm::r2beta(vis_mods$max_mod[[1]], partial = TRUE)
 
 partial_r2 <- 
   1:62 %>%
-  map_dfr(~r2glmm::r2beta(vis_mods$max_mod[[.x]], partial = TRUE), .id = "elec") %>%
+  map_dfr(~r2glmm::r2beta(vis_mods$max_mod[[.x]], partial = TRUE, method = "sgv"), .id = "elec") %>%
   as_tibble(.) %>%
   mutate(elec = as.numeric(elec)) %>%
   left_join(., elec_locs, by = c("elec" = "labels"))
