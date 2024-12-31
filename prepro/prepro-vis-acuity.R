@@ -38,7 +38,7 @@ dd <-
     )
 
 # Here to fix session or other issues
-dd %>% select(task, ss, session, date) %>% distinct() %>% arrange(ss, session) %>% View()
+#dd %>% select(task, ss, session, date) %>% distinct() %>% arrange(ss, session) %>% View()
 
 dd_f <- 
   dd %>% 
@@ -60,6 +60,6 @@ dd_f_d <-
 f <- file.path("output", "visual-acuity-data-queries.csv")
 write_csv(dd_f_d, file = f)
 
-# saving out ----
-#f <- file.path("output", "visual-acuity-data.rds")
-#saveRDS(dd, file = f)
+# saving out data ----
+f <- file.path("output", "visual-acuity-data.rds")
+saveRDS(dd_f, file = f)

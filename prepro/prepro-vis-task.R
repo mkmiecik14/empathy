@@ -94,6 +94,10 @@ dd_q2 <-
 f <- file.path("output", "vis-task-query-2.csv")
 write_csv(dd_q2, file = f)
 
+# writes out data ----
+dr <- dd2 # data will get cleaned here
+f <- file.path("output", "vis-task-data.rds") # file name
+saveRDS(object = dr, file = f)
 
 
 # Cleans up script objects ----
