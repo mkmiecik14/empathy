@@ -1,0 +1,161 @@
+---
+title: "Visual Acuity Quality Check"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+    #toc-depth: 3 # Optional: Specifies the number of header levels included
+editor: visual
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+## Brief Summary
+
+This document provides plots of raw and summary data for the visual acuity where participants are presented letters to read across 8 trials of decreasing font size. These data in general are behaving in the way expected: as the font size became smaller, the accuracy in reporting the letters decreased. There is a marked decrease in performance after the 6th trial.
+
+This measure may serve as a useful covariate for the visual task.
+
+**Note.** These data were filtered to exclude participants with open queries and results may change after resolving those queries (but not by much).
+
+```{r, setup}
+# libraries ----
+library(tidyverse); library(RColorBrewer)
+
+# plot elements ----
+s_cols <- brewer.pal(9, name = "PuBu")[c(6:8)] # session colors
+names(s_cols) <- c(10:12)
+
+# data ----
+dd <- readRDS(file = "../../output/visual-acuity-data.rds")
+#dd <- readRDS(file = "output/visual-acuity-data.rds") # uncomment when working in doc
+
+# remove after these data have been cleaned
+dc <- dd %>% filter(session %in% c(10:12)) 
+
+# summaries ----
+
+# trial summary
+dc_trial <- 
+  dc %>% 
+  summarise(
+    p = mean(acc), 
+    n = n(), 
+    se = sqrt((p * (1 - p)) / n), 
+    .by = c(session, trial)
+    ) 
+
+# subject-wise summary
+dc_ss_sum <- 
+  dc %>% 
+  summarise(
+    p = mean(acc), n = n(), 
+    .by = c(session, ss)
+    ) 
+
+# session-wise summary
+dc_sum <- 
+  dc_ss_sum %>%
+  summarise(
+    P = mean(p), N = n(), SE = sqrt((P * (1 - P)) / N), 
+    .by = c(session)
+    )
+```
+
+## Histograms
+
+```{r}
+# histogram of acc by session
+ggplot(dc_ss_sum, aes(p)) + 
+  geom_histogram(binwidth = .10) +
+  scale_x_continuous(breaks = seq(0, 1, .2)) +
+  coord_cartesian(xlim = c(0, 1)) +
+  labs(x = "Prop. Correct", y = "Frequency") +
+  facet_wrap(~session) + 
+  theme_bw()
+```
+
+## Boxplots
+
+```{r}
+# boxplot by session
+pj <- position_jitter(height = .025, width = .1)
+ggplot(
+  dc_ss_sum %>% mutate(session = factor(session)), 
+  aes(session, p, color = session, fill = session)
+  ) + 
+  geom_point(position = pj, alpha = 1/3, shape = 16) +
+  geom_boxplot(width = .2, position = position_nudge(x = .3), color = "black") +
+  labs(x = "Session", y = "Prop. Correct") +
+  scale_color_manual(values = s_cols) +
+  scale_fill_manual(values = s_cols) +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+# Mean Accuracy
+
+```{r}
+# boxplot by trial (i.e., size)
+ggplot(
+  dc_trial %>% mutate(trial = factor(trial), session = factor(session)), 
+  aes(trial, p, group = session, color = session)
+) + 
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin = p-se, ymax = p+se), width = .1) +
+  labs(x = "Trial", y = "Prop. Correct") +
+  scale_color_manual(values = s_cols) +
+  theme_bw() +
+  facet_wrap(~session) +
+  theme(legend.position = "none")
+```
+
+# Tables
+
+```{r}
+library(knitr); library(kableExtra) # libraries for table generation
+
+# preps table data
+td <- 
+  dc_trial %>% 
+  mutate(across(.cols = c(p, se), .fns = ~round(.x, 3))) %>%
+  relocate(se, .before = n) %>%
+  arrange(session, trial)
+
+# prints table
+kable(
+  td, format = "latex", booktabs = TRUE, align = "l",
+  caption = "Mean Prop. Correct Across Trial (Stimulus Size) and Session"
+  ) %>%
+  kable_styling(
+    latex_options = c("hold_position", "striped"),
+    full_width = FALSE
+  ) %>%
+  pack_rows("Baseline", 1, 8) %>%
+  pack_rows("PV 1", 9, 16) %>%
+  pack_rows("PV 2", 17, 24)
+
+# preps table data
+td <- 
+  dc_sum %>% 
+  mutate(across(.cols = c(P, SE), .fns = ~round(.x, 3))) %>%
+  relocate(SE, .before = N) %>%
+  arrange(session)
+
+# prints table
+kable(
+  td, format = "latex", booktabs = TRUE, align = "l",
+  caption = "Mean Prop. Correct Across Session"
+  ) %>%
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE
+  )
+```
