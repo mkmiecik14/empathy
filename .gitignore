@@ -43,3 +43,6 @@ vignettes/*.pdf
 
 # Mac stuff
 .DS_Store
+
+# ignore PDFs
+*.pdf
