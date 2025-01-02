@@ -78,6 +78,11 @@ dd_q2 <- dd2 %>% select(task:date) %>% distinct() %>% arrange(ss, date)
 f <- file.path("output", "aud-task-query-2.csv")
 write_csv(dd_q2, file = f)
 
+# writes out data ----
+dr <- dd2 # data will get cleaned here
+f <- file.path("output", "aud-task-data.rds") # file name
+saveRDS(object = dr, file = f)
+
 
 # ARCHIVAL --- MOVE THIS TO A QC SCRIPT! ----
 

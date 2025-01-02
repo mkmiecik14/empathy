@@ -1,0 +1,166 @@
+---
+title: "Auditory Task Quality Check"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+    #toc-depth: 3 # Optional: Specifies the number of header levels included
+editor: visual
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+## Brief Summary
+
+This document provides plots of raw and summary data for the auditory task where participants are presented with an auditory stimulus at 5 loudness intensities. These data in general are behaving in the way expected: as the stimuli became louder, participants' ratings of unpleasantness increased. The pattern was observed across all three sessions.
+
+**Note.** These data were filtered to exclude participants with open queries and results may change after resolving those queries (but not by much).
+
+```{r, setup}
+# libraries ----
+library(tidyverse); library(RColorBrewer)
+
+# data ----
+dd <- readRDS(file = "../../output/aud-task-data.rds")
+#dd <- readRDS(file = "output/aud-task-data.rds") # uncomment when working in doc
+
+# remove after these data have been cleaned
+dc <- dd %>% filter(session %in% c(10:12), rating %in% c(0:20)) 
+```
+
+## Histograms
+
+```{r}
+# histogram of ratings by session
+ggplot(dc, aes(rating)) + 
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks = seq(0, 20, 5)) +
+  labs(x = "Rating", y = "Frequency") +
+  facet_wrap(~session) + 
+  theme_bw()
+```
+
+## Boxplots
+
+```{r}
+# boxplot by session
+pj <- position_jitter(height = .5, width = .1)
+s_cols <- brewer.pal(9, name = "PuBu")[c(6:8)]
+names(s_cols) <- c(10:12)
+ggplot(
+  dc %>% mutate(session = factor(session)), 
+  aes(session, rating, color = session, fill = session)
+  ) + 
+  geom_point(position = pj, alpha = 1/3, shape = 16) +
+  geom_boxplot(width = .2, position = position_nudge(x = .3), color = "black") +
+  labs(x = "Session", y = "Rating") +
+  scale_color_manual(values = s_cols) +
+  scale_fill_manual(values = s_cols) +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+```{r, fig.height = 5}
+# boxplot by stimulus intensity
+pj <- position_jitter(height = .5, width = .1)
+stim_cols <- brewer.pal(9, name = "BuPu")[c(4:8)]
+names(stim_cols) <- c(1:5)
+ggplot(
+  dc %>% mutate(stim = factor(stim)), 
+  aes(stim, rating, group = stim, color = stim, fill = stim)
+) + 
+  geom_point(position = pj, alpha = 1/3, shape = 16) +
+  geom_boxplot(width = .2, position = position_nudge(x = .3), color = "black") +
+  labs(x = "Stimulus Intensity", y = "Rating") +
+  scale_color_manual(values = stim_cols) +
+  scale_fill_manual(values = stim_cols) +
+  theme_bw() +
+  facet_wrap(~session, ncol = 1) +
+  theme(legend.position = "none")
+```
+
+## Slopes
+
+```{r}
+# subject-wise slopes
+pj_num <- .35
+pj <- position_jitter(width = pj_num, height = pj_num)
+ggplot(
+  dc %>% mutate(session = factor(session)), 
+  aes(stim, rating, group = ss, color = session)
+  ) + 
+  geom_point(position = pj, size = .5) +
+  geom_line(
+    stat = "smooth", method = "lm", se = FALSE, alpha = 1/2, 
+    linewidth = .5
+    ) +
+  theme_bw() +
+  labs(x = "Stimulus Intensity", y = " Rating") +
+  scale_color_manual(values = s_cols) +
+  facet_wrap(~session) +
+  theme(legend.position = "none")
+```
+
+## Mean Ratings
+
+```{r, fig.height = 5}
+# summarises trial-wise
+dc_trial_sum <- 
+  dc %>% 
+  summarise(
+    m = mean(rating), sd = sd(rating), n = n(), sem = sd/sqrt(n), 
+    .by = c(session, stim)
+    )
+
+# plot
+pn <- position_nudge(x = .3)
+ggplot(
+  dc_trial_sum %>% mutate(session = factor(session)), 
+  aes(stim, m, group = session, color = session)
+  ) +
+  geom_point(
+    data = dc %>% mutate(session = factor(session)), 
+    aes(y = rating), alpha = 1/3, shape = 16, position = pj, size = .75
+    ) +
+  geom_point(position = pn) +
+  geom_errorbar(aes(ymin = m-sem, ymax = m+sem), width = .1, position = pn) +
+  geom_line(position = pn) +
+  scale_color_manual(values = s_cols) +
+  coord_cartesian(ylim = c(0, 20)) +
+  labs(
+    x = "Stimulus Intensity", y = "Mean Rating", caption = "SEM error bars."
+    ) +
+  theme_bw() +
+  facet_wrap(~session) +
+  theme(legend.position = "none")
+```
+
+```{r}
+library(knitr); library(kableExtra) # libraries for table generation
+
+# preps table data
+td <- 
+  dc_trial_sum %>% 
+  mutate(across(.cols = c(m, sd, sem), .fns = ~round(.x, 2))) %>%
+  arrange(session, stim)
+
+# prints table
+kable(
+  td, format = "latex", booktabs = TRUE, align = "l",
+  caption = "Mean Participant Ratings Across Stimulus Intensity and Session"
+  ) %>%
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE
+  )
+
+# inspecting 
+# dc %>% filter(session == 12) %>% count(ss) %>% filter(n != 5) %>% pull(ss) -> tss
+# dc %>% filter(ss %in% tss, session == 12) %>% View()
+```
