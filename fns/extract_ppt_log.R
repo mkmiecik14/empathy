@@ -6,7 +6,9 @@
 # Input is a file path to PPT file
 
 # for testing purposes
-# file <- "data/PPT_only/Baseline/140/EH17-338-140-0edited.txt"
+file <- "data/PPT_only/Baseline/140/EH17-338-140-0edited.txt"
+file <- "data/PPT_only/Baseline/30/WagnerAlgometerLog#6.txt"
+file <- "data/PPT_only/Baseline/264-0/WagnerAlgometerLog#7.txt"
 
 extract_ppt_log <- function(file = NA, ...){
   
@@ -17,6 +19,26 @@ extract_ppt_log <- function(file = NA, ...){
   ss <- str_extract(file, pattern = p) %>% # extracts subject number
     trimws() %>% # trims any white space
     gsub(" ", "", .) # removes any spaces
+  
+  if (is.na(ss)) {
+    # this is a WagnerAlgometerLog file
+    # checks if file path has "Baseline", "Period Visit 1" , "Period Visit 2"
+    visit <- 
+      case_when(
+        str_detect(file, "Baseline") ~ 0,
+        str_detect(file, "Period Visit 1") ~ 1,
+        str_detect(file, "Period Visit 2") ~ 2,
+        .default = NA
+      )
+    
+    # retrives subject number
+    ss_num <- 
+      str_extract(file, pattern = "/\\d{1,3}(?=-|/|\\b)") %>% gsub("/", "", .)
+    
+    # assembles full ss number that matches
+    ss <- paste0("EH17-338-", ss_num, "-", visit)
+    
+  } else{} # nothing else needs to be done
   
   # reading in table of values
   dd <- 
