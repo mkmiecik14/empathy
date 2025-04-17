@@ -6,9 +6,9 @@
 # Input is a file path to PPT file
 
 # for testing purposes
-file <- "data/PPT_only/Baseline/140/EH17-338-140-0edited.txt"
-file <- "data/PPT_only/Baseline/30/WagnerAlgometerLog#6.txt"
-file <- "data/PPT_only/Baseline/264-0/WagnerAlgometerLog#7.txt"
+# file <- "data/PPT_only/Baseline/140/EH17-338-140-0edited.txt"
+# file <- "data/PPT_only/Baseline/30/WagnerAlgometerLog#6.txt"
+# file <- "data/PPT_only/Baseline/264-0/WagnerAlgometerLog#7.txt"
 
 extract_ppt_log <- function(file = NA, ...){
   
@@ -72,7 +72,7 @@ extract_ppt_log <- function(file = NA, ...){
     mutate(subject_id = ss, .before = trial)
   
   if (nrow(dd2) > 8) {
-    message("Probably not a true Wagner log file...")
+    #message("Probably not a true Wagner log file...")
     dd2 <- NA
   } else{
     return(dd2) # returns dataframe to user 
