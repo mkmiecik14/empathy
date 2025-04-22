@@ -149,64 +149,18 @@ ss_4 <- log_n %>% filter(n==6) %>% pull(subject_id) # good ss from log files
 log_data_1 <- ppt_log_res %>% filter(subject_id %in% ss_4) # GOOD LOG DATA
 
 ss_5 <- log_n %>% filter(n!=6) %>% pull(subject_id) # problem ss from log files
+ppt_log_res %>% filter(subject_id %in% ss_5) %>% View()
+# One can be saved by using the "EDITED" log file, the rest are likely not great
 
-# brings in query results
-ppt_query_ans <- 
-  readxl::read_excel(path = file.path("doc", "ppt-query_SD.xlsx")) %>%
-  mutate(datetime = ymd_hms(datetime, tz = "UTC")) %>%
-  # this extra step pushes time ahead 7 hours to match (bc of Excel)
-  mutate(datetime = with_tz(datetime, tzone = "America/Los_Angeles"))
+ppt_query <- ppt_log_res %>% filter(subject_id %in% ss_5)
+write_csv(ppt_query, file = "output/ppt-query.csv")
 
-# preps for join
-bb <- c("path", "datetime", "subject_id", "trial", "site")
-ppt_query_join <- 
-  ppt_query_ans %>% 
-  select(all_of(bb), query_trial)
-
-# CLEANED REMAINING LOG DATA
-log_data_2 <- 
-  ppt_log_res %>% 
-  filter(subject_id %in% ss_5) %>%
-  left_join(., ppt_query_join, by = bb) %>%
-  filter(!is.na(query_trial))
-
-# combines log data
-log_data <- 
-  bind_rows(log_data_1, log_data_2) %>%
-  # does some selecting and renaming of columns to facilitate join
+# combines ppt and log data into one
+ppt_data_all <- 
+  log_data_1 %>% 
   select(
     path, subject_id, datetime, trial, site, strain = peak_strain, rate, 
     duration = total_time
-    )
-
-# combines ppt and log data into one
-ppt_data_all <- bind_rows(ppt_data_2, log_data)
-
-# checking data that are still missing
-ss_6 <- 
-  ppt_data_all %>% 
-  count(subject_id) %>%
-  left_join(ss_key, ., by = "subject_id") %>%
-  filter(is.na(n))
-# these participants are still OK, they just had identical ppt and wagner log
-# files, resulting in being skipped over
-ppt_data_3 <- 
-  ppt_res %>% 
-  filter(subject_id %in% ss_6$subject_id) %>% 
-  filter(!grepl("Wagner", path)) # excludes wagner log data
-
-# combines remaining ppt data with all data
-ppt_data_all_2 <- bind_rows(ppt_data_all, ppt_data_3)
-
-# These are data in which n trials is not 6
-# comment out to see
-# ppt_data_all_2 %>%
-#   filter(!is.na(strain)) %>%
-#   count(subject_id) %>%
-#   left_join(ss_key, ., by = "subject_id") %>%
-#   filter(n != 6)
-
-# saves out PPT data ----
-f <- file.path("output", "ppt-data.rds")
-saveRDS(ppt_data_all_2, file = f)
+    ) %>%
+  bind_rows(ppt_data_2, .)
 
