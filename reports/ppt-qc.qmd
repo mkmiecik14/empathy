@@ -1,0 +1,139 @@
+---
+title: "PPT Quality Check"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+    include-in-header:
+     text: |
+       \usepackage{fvextra}
+       \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+         commandchars=\\\{\},
+         breaklines, breaknonspaceingroup, breakanywhere
+       }
+    #toc-depth: 3 # Optional: Specifies the number of header levels included
+include-before-body:
+  text: |
+    \RecustomVerbatimEnvironment{verbatim}{Verbatim}{
+      showspaces = false,
+      showtabs = false,
+      breaksymbolleft={},
+      breaklines
+    }
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+---
+
+## Brief Summary
+
+This document provides plots of raw and summary data for the pain pressure threshold (PPT) data.
+
+```{r, setup}
+# libraries ----
+library(tidyverse); library(RColorBrewer)
+
+# data ----
+# uncomment when working with data
+# f <- here::here("output", "ppt-data.rds")
+# dd <- readRDS(file = f)
+
+# when rendering quarto:
+dd <- readRDS(file = "../../output/ppt-data.rds")
+
+# plot elements ----
+library(ghibli)
+tcol <- 
+  c(
+    "knee" = ghibli_palettes$LaputaMedium[6], 
+    "shoulder" = ghibli_palettes$LaputaMedium[5]
+    )
+```
+
+## Histograms
+
+```{r, fig.width=9, fig.height=5}
+pdata <- dd %>% filter(!is.na(strain)) %>% mutate(trial = factor(trial))
+ggplot(
+  pdata, 
+  aes(strain, group = interaction(trial, task), fill = location)
+  ) + 
+  geom_histogram(binwidth = 5) +
+  labs(x = "Strain (newtons)", y = "Frequency") +
+  scale_fill_manual(values = tcol) +
+  facet_grid(session~trial, labeller = label_both) + 
+  theme_bw()
+```
+
+## Boxplots
+
+```{r, fig.width=9, fig.height=5}
+pdata <- dd %>% filter(!is.na(strain)) %>% mutate(trial = factor(trial))
+ggplot(
+  pdata, 
+  aes(trial, strain, group = interaction(trial, task), fill = location)
+  ) + 
+  geom_boxplot() +
+  labs(x = "Trial", y = "Strain (newtons)") +
+  scale_fill_manual(values = tcol) +
+  facet_wrap(~session, labeller = label_both) + 
+  theme_bw()
+```
+
+## Descriptive Statistics
+
+```{r, fig.height = 5}
+# summarises subject-wise
+dd_ss <- 
+  dd %>% 
+  filter(!is.na(strain)) %>%
+  summarise(m = mean(strain), n = n(), .by = c(ss, session, location, task))
+
+# summarises study-wise
+dd_sum <- 
+  dd_ss %>%
+  summarise(
+    M = mean(m), MED = median(m), SD = sd(m), N = n(), SEM = SD/sqrt(N),
+    .by = c(session, location, task)
+  )
+
+# plot
+pdata <- dd_sum %>% mutate(task = factor(task, levels = c("PPT", "CPM")))
+ggplot(pdata, aes(task, M, color = location)) +
+  geom_line(aes(group = 1)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = M-SEM, ymax = M+SEM, width = .1)) +
+  labs(x = "Task", y = "Mean Strain (newtons)", caption = "SEM error bars.") +
+  facet_grid(session~location, labeller = label_both) +
+  scale_color_manual(values = tcol) +
+  theme_bw()
+```
+
+```{r}
+library(knitr); library(kableExtra) # libraries for table generation
+
+# preps table data
+td <- 
+  dd_sum %>% 
+  mutate(across(.cols = c(M, SD, SEM), .fns = ~round(.x, 2))) %>%
+  mutate(task = factor(task, levels = c("PPT", "CPM"))) %>%
+  arrange(session, task, location)
+
+# prints table
+kable(
+  td, format = "latex", booktabs = TRUE, align = "l",
+  caption = "Mean PPT Strain Across Location, Task, and Session",
+  linesep = c("", "", "", "\\addlinespace")
+  ) %>%
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE
+  )
+```

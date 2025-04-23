@@ -100,7 +100,7 @@ ggplot(ppt_data, aes(factor(trial), strain)) +
   theme_bw()
 
 # taking a look at subjects with multiple files/runs/issues
-ppt_res %>% filter(subject_id %in% ss) %>% View()
+# ppt_res %>% filter(subject_id %in% ss) %>% View()
 ppt_res_2 <- 
   ppt_res %>% 
   filter(subject_id %in% ss) %>% # includes only problem ss
@@ -195,8 +195,31 @@ ppt_data_3 <-
   filter(subject_id %in% ss_6$subject_id) %>% 
   filter(!grepl("Wagner", path)) # excludes wagner log data
 
-# combines remaining ppt data with all data
-ppt_data_all_2 <- bind_rows(ppt_data_all, ppt_data_3)
+# combines remaining ppt data with all data and does some organizing
+ppt_data_all_2 <- 
+  bind_rows(ppt_data_all, ppt_data_3) %>% # combines
+  separate(
+    subject_id, into = c("study", "study_id", "ss", "session"), sep = "-",
+    remove = FALSE
+  ) %>%
+  mutate(
+    location = case_when(
+      site == 3 ~ "knee", 
+      site == 1 ~ "shoulder",
+      is.na(site) ~ NA_character_,
+      .default = as.character(site)
+      ),
+    task = case_when(
+      trial %in% c(1:4) ~ "PPT",
+      trial %in% c(5:6) ~ "CPM",
+      is.na(trial) ~ NA_character_,
+      .default = as.character(trial)
+    ),
+    .before = strain
+    ) %>%
+  select(-study, -study_id) %>% # removes uninformative cols
+  mutate(across(.cols = c(ss, session), .fns = ~as.numeric(.x)))
+  
 
 # These are data in which n trials is not 6
 # comment out to see
@@ -207,6 +230,12 @@ ppt_data_all_2 <- bind_rows(ppt_data_all, ppt_data_3)
 #   filter(n != 6)
 
 # saves out PPT data ----
+
+## RDS
 f <- file.path("output", "ppt-data.rds")
 saveRDS(ppt_data_all_2, file = f)
+
+## CSV
+f <- file.path("output", "ppt-data.csv")
+write_csv(ppt_data_all_2, file = f)
 
