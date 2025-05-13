@@ -33,7 +33,7 @@ dd %>%
     .by = c(subject_id, redcap_event_name)
     )
 
-# removes duplictated participant entries here:
+# removes duplicated participant entries here:
 df <- 
   dd %>% 
   filter(!is.na(subject_id)) %>%
@@ -56,7 +56,10 @@ cssi_long_sum <-
 
 
 # Michigan Body Map ----
-dd %>% select(all_of(header), matches("v_kids_fibro_bodymap"))
+f <- file.path("output", "tanner-body-gss-data.rds")
+tmp <- readRDS(f)
+bodymap_gss_data <- tmp %>% select(-starts_with("tanner")) # removes tanner data
+
 
 # auditory and visual provoked unpleasantness ratings ----
 vis_aud_data <- 
@@ -65,6 +68,7 @@ vis_aud_data <-
   select(
     subject_id, redcap_event_name, vis_mean, vis_slope, aud_mean, aud_slope
     )
+
 
 # PPTs ----
 ppt_data <- 
@@ -75,18 +79,29 @@ ppt_data <-
     knee_PPT, shoulder_PPT, knee_CPM, shoulder_CPM
   )
 
-
 # bladder experimental pain testing ----
-test <- 
+# green = first sensation
+# yellow = first urge
+# red = max tolerance
+bb_vars <- c("bt7a_green_pain", "bt7b_yellowpain", "bt7c_redpain")
+bb <- 
   df %>% 
-  select(all_of(header), matches("bladder"))
+  select(all_of(header), all_of(bb_vars)) %>%
+  rename(
+    green_pain = bt7a_green_pain, 
+    yellow_pain = bt7b_yellowpain, 
+    red_pain = bt7c_redpain
+    ) %>%
+  select(subject_id, redcap_event_name, contains("pain"))
 
 
 # combining data ----
 tjoin <- c("subject_id", "redcap_event_name") # joining criteria
 dc <- 
   full_join(cssi_long_sum %>% select(-n), vis_aud_data, by = tjoin) %>%
-  full_join(., ppt_data, by = tjoin)
+  full_join(., ppt_data, by = tjoin) %>%
+  full_join(., bodymap_gss_data, by = tjoin) %>%
+  full_join(., bb, by = tjoin)
 
 # writing out data ----
 f <- file.path("output", "pca-data.rds")

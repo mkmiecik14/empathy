@@ -2,7 +2,7 @@
 # Matt Kmiecik
 # Started 27 April 2025
 
-# Purpose: analyze senensory and questionnaire measures using PCA
+# Purpose: analyze sensory and questionnaire measures using PCA
 
 # libraries ----
 library(tidyverse); library(TInPosition); library(scales)
@@ -51,3 +51,4 @@ ggplot(scree_data, aes(comp, perc)) +
   labs(x = "Component", y = "Percentage of Variance Explained") +
   scale_y_continuous(labels = function(x) paste0(x, "%")) +
   theme_bw()
+getwd()
