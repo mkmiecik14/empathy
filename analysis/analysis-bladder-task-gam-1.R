@@ -163,6 +163,36 @@ AIC(mod4_tw_x, mod4_tw_x2)
 compareML(mod4_tw_x, mod4_tw_x2)
 concurvity(mod4_tw_x2)
 
+
+# last one
+mod4_tw_2 <- 
+  bam(
+    pain ~ 1 + s(diff_time) + s(urgency)  + 
+      s(subject_id, bs = "re") + 
+      s(subject_id, diff_time, bs = "re"), 
+    data = mod_data, # %>% filter(subject_id %in% ids[1:50])
+    family = tw(link = "log"), # was initially run without this
+    method = "fREML",
+    control = gam.control(trace = TRUE),
+    select = TRUE
+  )
+summary(mod4_tw_2)
+plot(mod4_tw_2, pages = 1, scale = 0)
+
+mod4_tw_3 <- 
+  bam(
+    urgency ~ 1 + s(diff_time) + 
+      s(subject_id, bs = "re") + 
+      s(subject_id, diff_time, bs = "re"), 
+    data = mod_data, # %>% filter(subject_id %in% ids[1:50])
+    family = tw(link = "log"), # was initially run without this
+    method = "fREML",
+    control = gam.control(trace = TRUE),
+    select = TRUE
+  )
+summary(mod4_tw_3)
+plot(mod4_tw_3, pages = 1, scale = 0, scheme = 1)
+
 # prediction ----
 new_data <- 
   with(
