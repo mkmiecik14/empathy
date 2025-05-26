@@ -68,15 +68,15 @@ dd2 <-
 
 # issues:
 
-# query 1: ratings over 20
-dd_q1 <- dd2 %>% filter(rating > 20)
-f <- file.path("output", "aud-task-query-1.csv")
-write_csv(dd_q1, file = f)
-
-# query 2: session confirmations
-dd_q2 <- dd2 %>% select(task:date) %>% distinct() %>% arrange(ss, date)
-f <- file.path("output", "aud-task-query-2.csv")
-write_csv(dd_q2, file = f)
+# # query 1: ratings over 20
+# dd_q1 <- dd2 %>% filter(rating > 20)
+# f <- file.path("output", "aud-task-query-1.csv")
+# write_csv(dd_q1, file = f)
+# 
+# # query 2: session confirmations
+# dd_q2 <- dd2 %>% select(task:date) %>% distinct() %>% arrange(ss, date)
+# f <- file.path("output", "aud-task-query-2.csv")
+# write_csv(dd_q2, file = f)
 
 # writes out data ----
 dr <- dd2 # data will get cleaned here

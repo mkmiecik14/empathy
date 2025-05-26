@@ -39,27 +39,11 @@ df <-
   filter(!is.na(subject_id)) %>%
   distinct(subject_id, redcap_event_name, .keep_all = TRUE)
 
-# Childhood Somatization Inventory ----
-cssi_long <- 
-  df %>% 
-  select(all_of(header), matches("^csi_child")) %>%
-  pivot_longer(
-    cols = c(-record_id, -redcap_event_name, -subject_id),
-    names_to = "q", values_to = "value"
-    )
-
-# computes cssi by summing all 24 trials
-cssi_long_sum <- 
-  cssi_long %>%
-  summarise(cssi = sum(value), n = n(), .by = c(subject_id, redcap_event_name))
-#cssi_long_sum %>% filter(n!=24) # proof now that all subjects have 24 trials
-
-
-# Michigan Body Map ----
-f <- file.path("output", "tanner-body-gss-data.rds")
-tmp <- readRDS(f)
-bodymap_gss_data <- tmp %>% select(-starts_with("tanner")) # removes tanner data
-
+################
+#              #
+# EXPERIMENTAL #
+#              #
+################
 
 # auditory and visual provoked unpleasantness ratings ----
 vis_aud_data <- 
@@ -79,30 +63,82 @@ ppt_data <-
     knee_PPT, shoulder_PPT, knee_CPM, shoulder_CPM
   )
 
-# bladder experimental pain testing ----
-# green = first sensation
-# yellow = first urge
-# red = max tolerance
-bb_vars <- c("bt7a_green_pain", "bt7b_yellowpain", "bt7c_redpain")
-bb <- 
-  df %>% 
-  select(all_of(header), all_of(bb_vars)) %>%
-  rename(
-    green_pain = bt7a_green_pain, 
-    yellow_pain = bt7b_yellowpain, 
-    red_pain = bt7c_redpain
-    ) %>%
-  select(subject_id, redcap_event_name, contains("pain"))
+# after pain data ----
+f <- file.path("output", "afterpain-data.rds")
+ap_data <- read_rds(file = f)
 
+
+# bladder experimental pain testing (IMPUTED DATA) ----
+f <- file.path("output", "bladder-task-imp-data.rds")
+tmp <- read_rds(file = f) # reads in
+
+# converts bladder task pain data from long to wide format
+bt_pain_wide <- 
+  tmp %>% 
+  pivot_wider(
+    id_cols = c(subject_id, redcap_event_name), 
+    names_from = bt_pain, 
+    values_from = pain
+    )
+
+# converts bladder task urgency data from long to wide format
+bt_urgency_wide <- 
+  tmp %>% 
+  pivot_wider(
+    id_cols = c(subject_id, redcap_event_name), 
+    names_from = bt_urgency, 
+    values_from = urgency
+  )
+
+
+# cold pain data ----
+f <- file.path("output", "coldpain-data.rds")
+cp_data <- read_rds(file = f) %>% select(-water_temp)
+
+##################
+#                #
+# QUESTIONNAIRES #
+#                #
+##################
+
+# Childhood Somatization Inventory ----
+f <- file.path("output", "cssi-data.rds")
+cssi_data <- read_rds(file = f)
+
+
+# Michigan Body Map ----
+f <- file.path("output", "tanner-body-gss-data.rds")
+tmp <- readRDS(f)
+bodymap_gss_data <- tmp %>% select(-starts_with("tanner")) # removes tanner data
+
+
+# Highly sensitive child ----
+f <- file.path("output", "hsc-data.rds")
+hsc_data <- read_rds(file = f)
+
+#################
+#               #
+# COMBINES DATA #
+#               #
+#################
 
 # combining data ----
 tjoin <- c("subject_id", "redcap_event_name") # joining criteria
-dc <- 
-  full_join(cssi_long_sum %>% select(-n), vis_aud_data, by = tjoin) %>%
-  full_join(., ppt_data, by = tjoin) %>%
-  full_join(., bodymap_gss_data, by = tjoin) %>%
-  full_join(., bb, by = tjoin)
+all_ss <- df %>% select(subject_id, redcap_event_name) # all possible subjects
+
+# creates a list of dataframes
+df_list <- 
+  list(
+    all_ss, # participant numbers and events
+    # experimental:
+    vis_aud_data, ppt_data, bt_pain_wide, bt_urgency_wide, cp_data, ap_data,
+    cssi_data, bodymap_gss_data, hsc_data # questionnaires
+    )
+
+# combines all data into one dataframe
+pca_data <- reduce(df_list, full_join, by = tjoin)
+
 
 # writing out data ----
 f <- file.path("output", "pca-data.rds")
-write_rds(dc, file = f)
+write_rds(pca_data, file = f)

@@ -83,16 +83,16 @@ dd2 <-
 # Therefore, this number will be replaced with NA
   mutate(rating = ifelse(ss == 252 & rating == 87, NA, rating))
 
-# query 1: ratings that are not doubles outside of usual values
-dd_q1 <- dd2 %>% filter(!between(rating, 0, 20))
-f <- file.path("output", "vis-task-query-1.csv")
-write_csv(dd_q1, file = f)
-
-# query 2: general session/ss info
-dd_q2 <- 
-  dd2 %>% select(task, ss, session, date) %>% distinct() %>% arrange(ss, date)
-f <- file.path("output", "vis-task-query-2.csv")
-write_csv(dd_q2, file = f)
+# # query 1: ratings that are not doubles outside of usual values
+# dd_q1 <- dd2 %>% filter(!between(rating, 0, 20))
+# f <- file.path("output", "vis-task-query-1.csv")
+# write_csv(dd_q1, file = f)
+# 
+# # query 2: general session/ss info
+# dd_q2 <- 
+#   dd2 %>% select(task, ss, session, date) %>% distinct() %>% arrange(ss, date)
+# f <- file.path("output", "vis-task-query-2.csv")
+# write_csv(dd_q2, file = f)
 
 # writes out data ----
 dr <- dd2 # data will get cleaned here

@@ -22,13 +22,18 @@ dd <- read_rds(file = f)
 
 # these cols need to be flipped so that increased scores == more sensitive
 tcols <- c("knee_PPT", "shoulder_PPT", "knee_CPM", "shoulder_CPM")
-dd_flip <- 
-  dd %>% 
-  mutate(across(.cols = all_of(tcols), .fns = ~-1*.x)) %>% # flips cols
-  filter(complete.cases(.))
+dd_flip <- dd %>% mutate(across(.cols = all_of(tcols), .fns = ~-1*.x)) # flips
 
 # only baseline participants for initial PCA
 dd_flip_bs <- dd_flip %>% filter(grepl("baseline", redcap_event_name))
+
+# examines the nature of the missing data
+miss <- dd_flip_bs %>% filter(!complete.cases(.))
+miss %>% View()
+miss$n_na <- apply(miss, 1, function(x) sum(is.na(x)))
+miss %>% filter(n_na < 2)
+
+
 
 # preps a matrix for PCA
 pca_data <- as.matrix(dd_flip_bs %>% select(-subject_id, -redcap_event_name))
