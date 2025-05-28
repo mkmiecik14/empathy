@@ -4,6 +4,11 @@
 
 # Purpose: analyze sensory and questionnaire measures using PCA
 
+# FLAGS ----
+print_graphs <- FALSE # set to TRUE if you want PCA plots to be printed to
+iters <- 2000 # sets the amount of bootstrap/permutation iterations for PCA
+script <- "analysis-pca-1" # script for file prefix when saving
+
 # libraries ----
 library(tidyverse); library(TInPosition); library(scales)
 
@@ -29,31 +34,51 @@ dd_flip_bs <- dd_flip %>% filter(grepl("baseline", redcap_event_name))
 
 # examines the nature of the missing data
 miss <- dd_flip_bs %>% filter(!complete.cases(.))
-miss %>% View()
 miss$n_na <- apply(miss, 1, function(x) sum(is.na(x)))
 miss %>% filter(n_na < 2)
-
-
+#miss %>% filter(n_na == 1) %>% View()
+nrow(dd_flip_bs) - nrow(miss) 
+ggplot(miss, aes(n_na)) + 
+  geom_histogram(binwidth=1) + 
+  scale_x_continuous(breaks = seq(1, 30, 1), minor_breaks = NULL)
 
 # preps a matrix for PCA
-pca_data <- as.matrix(dd_flip_bs %>% select(-subject_id, -redcap_event_name))
-rownames(pca_data) <- dd_flip_bs$subject_id
-pca_data
+tmp <- dd_flip_bs %>% filter(complete.cases(.)) # removes missing data
+pca_data <- as.matrix(tmp %>% select(-subject_id, -redcap_event_name)) # matrix
+rownames(pca_data) <- tmp$subject_id # rownames as subject ID
+q <- c("cssi", "bodymap", "gss", "hsc_mean") # questionnaires
+supp_data <- pca_data[,q] # creates supplementary data
+pca_data_exp <- pca_data[, !colnames(pca_data) %in% q] # creates PCA data w/o q
 
 # runs PCA and bootstrapping
-res <- epPCA(pca_data)
+set.seed(1218) # sets seed for reproducible results
 
-# viz results
-scree_data <- 
-  tibble(
-    eigs = res$ExPosition.Data$eigs, 
-    perc = res$ExPosition.Data$t
-    ) %>%
-  mutate(comp = factor(1:nrow(.)))
-ggplot(scree_data, aes(comp, perc)) +
-  geom_point() +
-  geom_path(aes(group = 1)) +
-  labs(x = "Component", y = "Percentage of Variance Explained") +
-  scale_y_continuous(labels = function(x) paste0(x, "%")) +
-  theme_bw()
-getwd()
+## PCA without questionnaires
+res <- 
+  epPCA.inference.battery(
+    DATA = pca_data_exp,
+    graphs = print_graphs,
+    test.iters = iters
+    )
+# supplementary projections of questionnaires
+supp_res <- supplementaryCols(SUP.DATA = supp_data, res = res$Fixed.Data)
+
+## PCA with questionnaires included
+res_q <- 
+  epPCA.inference.battery(
+    DATA = pca_data,
+    graphs = print_graphs,
+    test.iters = iters
+  )
+
+# writes out results ----
+
+## PCA results with questionnaires as supplemental projections
+f <- file.path("output", paste0(script, "-exp-res.rds"))
+pca_exp_res <- list(res, supp_res)
+names(pca_exp_res) <- c("pca_res", "supp_proj")
+write_rds(pca_exp_res, file = f)
+
+## PCA results with questionnaires included
+f <- file.path("output", paste0(script, "-q-res.rds"))
+write_rds(res_q, file = f)

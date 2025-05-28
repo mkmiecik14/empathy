@@ -136,7 +136,9 @@ df_list <-
     )
 
 # combines all data into one dataframe
-pca_data <- reduce(df_list, full_join, by = tjoin)
+pca_data <- 
+  reduce(df_list, full_join, by = tjoin) %>% 
+  distinct() # removes any lingering duplicated rows from joining
 
 
 # writing out data ----
