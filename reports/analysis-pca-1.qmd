@@ -55,8 +55,45 @@ Two PCAs were performed:
 A few notes:
 
 * Bootstrapping (importance of measures) and permutation testing (of components) were performed using 2,000 iterations
-* Sample size for the first PCA was n=`nrow(exp_res$pca_res$Fixed.Data$ExPosition.Data$fi)`
-* Sample size for the second PCA was n=`nrow(q_res$Fixed.Data$ExPosition.Data$fi)`
+* Sample size for the first PCA was n=`r nrow(exp_res$pca_res$Fixed.Data$ExPosition.Data$fi)`
+* Sample size for the second PCA was n=`r nrow(q_res$Fixed.Data$ExPosition.Data$fi)`
+
+## Data quality
+
+```{r, fig.width=6, fig.height=7, fig.dpi=300}
+X <- q_res$Fixed.Data$ExPosition.Data$X # scaled data
+means <- attr(X, "scaled:center") # means
+sds <- attr(X, "scaled:scale") # standard deviations
+
+# converts back to original units
+unscaled_data <- sweep(X, 2, sds, "*")
+unscaled_data <- sweep(unscaled_data, 2, means, "+")
+
+# plotting scaled data
+X_long <- 
+  as_tibble(X, rownames = "subject_id") %>% pivot_longer(cols = -subject_id)
+
+ggplot(X_long, aes(value, name)) + 
+  geom_boxplot() + 
+  geom_vline(xintercept = 0, linetype = 3, color = rdgy[3]) +
+  labs(x = "Measurement Value (in SD units)", y = "Measure") +
+  scale_x_continuous(breaks = seq(-6, 10, 2)) +
+  theme_minimal()
+```
+
+```{r, fig.width=8, fig.height=8, fig.dpi=300}
+# plotting unscaled data
+raw_data_long <- 
+  as_tibble(unscaled_data, rownames = "subject_id") %>% 
+  pivot_longer(cols = -subject_id)
+
+ggplot(raw_data_long, aes("meas.", value)) +
+  geom_boxplot(width = .5) +
+  theme_bw() +
+  labs(x = "", y = "Unscaled Measurement Value") +
+  facet_wrap(~name, scales = "free") +
+  theme(strip.text = element_text(size =6))
+```
 
 
 ## Experimental Measures PCA
