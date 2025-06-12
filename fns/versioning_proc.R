@@ -1,8 +1,9 @@
 # versioning_proc.R
 # Matt Kmiecik
 # Started 2025-06-08
-# Purpose: function to facilitate versioning process of pipeline
+# Purpose: functions to facilitate versioning process of pipeline
 
+# function to extract version info
 versioning_proc <- 
   function(
     testing = FALSE, this_script = NULL, odir = "output", ...
@@ -35,4 +36,30 @@ versioning_proc <-
     r <- as.list(c(version, output_dir, script))
     names(r) <- c("version", "output", "script")
     return(r)
+  }
+
+# function to write versioned rds files
+versioned_write_rds <- function(data, vi){
+  
+  # note; vi should come from versioning_proc()
+  
+  # checking if packages are installed
+  pkgs <- c("glue", "readr")
+  for (i in pkgs) {
+    if (!requireNamespace(i, quietly = TRUE)) {
+      stop(paste0("Package ", i," is required but not installed."))
+    }
+  }
+  
+  # package loading
+  lapply(pkgs, require, character.only = TRUE)
+  
+  # filepath/names
+  f_current <- glue("output/{vi$script}-{vi$version}.rds")
+  f_archive <- glue("output/archive/{vi$script}-{vi$version}-{Sys.Date()}.rds")
+  
+  # writes out
+  write_rds(x = res, file = f_current) # current file based on version
+  write_rds(x = res, file = f_archive) # archived version
+  
 }
