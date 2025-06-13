@@ -1,0 +1,104 @@
+---
+title: "Analysis of Longitudinal Pain Questions: Explore"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  eval: true
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+params:
+  version: v1
+---
+
+```{r, setup, eval=TRUE}
+# libraries ----
+library(tidyverse); library(glue); library(kableExtra); library(here)
+
+# functions ----
+source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+#d <- read_rds(here::here("output", "analysis-long-pain-v1.rds"))
+
+# gets filename and loads data
+f <- glue("../../output/analysis-long-pain-{params$version}.rds")
+d <- read_rds(file = f)
+```
+
+## Brief summary
+
+This is version: `r params$version` of this analysis.
+
+This analysis explored the distributions and change over time—using linear mixed models[^1]—of the 4 longitudinal pain questions of interest:
+
+[^1]: I used generalized additive mixed models (GAMs) here. Given that there were no smooth (i.e., non-linear) terms, these became linear mixed models. The advantage of using the GAMs is that the `mgcv` package provides the Tweedie distribution that is useful for zero-inflated data, which is useful for pain ratings that are positively skewed towards zero.
+
+-   `painrating_child_q1` - Over the last 3 months, what was the average cramping pain you experienced with your period (around or below your belly button or lower back)?
+-   `painrating_child_q2` - Over the last 2 weeks, how much pelvic pain (NOT including any period pain) have you experienced?
+-   `painrating_child_q3` - Please indicate over the last 2 weeks how much pain you have experienced when having a bowel movement.
+-   `painrating_child_q4` - Please indicate over the last 2 weeks how much pain you have experienced when emptying your bladder.
+
+Given the results shown below, here were my observations:
+
+-   `painrating_child_q1` shows the most movement over time (increases) and is Gaussian in nature
+-   `painrating_child_q2-4` does not seem to change over time and is zero-inflated; therefore special care must be taken when creating a composite variable and using as a dependent variable in linear mixed modeling (or similar) as a Tweedie distribtion fit the data better than a Gaussian distribution.
+
+## Histograms
+
+```{r, fig.height=6}
+d$p1
+```
+
+## Trajectories
+
+```{r, fig.height=6}
+d$p2
+```
+
+\pagebreak
+
+## Gaussian linear mixed modeling
+
+```{r}
+kable_pdf(data = d$glance_gaus, cap = "Omnibus Model Statistics")
+```
+
+```{r}
+kable_pdf(d$param_gaus, cap = "Individual Model Estimates", sci_not_cols = "p")
+```
+
+```{r, fig.height=5}
+d$p4
+```
+
+## Tweedie linear mixed modeling
+
+```{r}
+kable_pdf(data = d$glance_tw, cap = "Omnibus Model Statistics")
+```
+
+```{r}
+d$param_tw %>% 
+  mutate(est_exp = exp(estimate), .before = se) %>%
+  kable_pdf(., cap = "Individual Model Estimates", sci_not_cols = "p")
+```
+
+*Note.* Tweedie estimates are on the log scale, so exponentiating the coefficient (`est_exp`) gives the multiplicative change in the expected value of Y for each year increase.
+
+```{r, fig.height=5}
+d$p3
+```
+
+## Comparing Gaussian vs. Tweedie fit
+
+```{r, fig.height=5}
+d$p5
+```
+
