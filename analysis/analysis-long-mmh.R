@@ -17,7 +17,7 @@ source("src/fns/broom_gam.R")
 
 # grabs versioning info ----
 source("src/fns/versioning_proc.R")
-vinfo <- versioning_proc(testing = TRUE, this_script = "analysis-long-mmh")
+vinfo <- versioning_proc(testing = FALSE, this_script = "analysis-long-mmh")
 
 # data ----
 
@@ -175,22 +175,26 @@ c_data_long <-
 
 # histogram
 pdata <- c_data_long %>% filter(!grepl("trans", name))
-ggplot(pdata, aes(value)) +
-  geom_histogram(binwidth = 1) +
-  coord_cartesian(xlim = c(0, 10)) +
-  scale_x_continuous(breaks = seq(0, 10, 1), minor_breaks = NULL) +
-  facet_grid(name~redcap_event_name) +
-  labs(x = "Pain Rating", y = "Frequency", title = "Original Values") +
-  theme_bw()
+o_hist <-
+  ggplot(pdata, aes(value)) +
+    geom_histogram(binwidth = 1) +
+    coord_cartesian(xlim = c(0, 10)) +
+    scale_x_continuous(breaks = seq(0, 10, 1), minor_breaks = NULL) +
+    facet_grid(name~redcap_event_name) +
+    labs(x = "Pain Rating", y = "Frequency", title = "Original Values") +
+    theme_bw()
+o_hist
 
 pdata <- c_data_long %>% filter(grepl("trans|pelvic_pain", name))
-ggplot(pdata, aes(value)) +
-  geom_histogram(binwidth = 1) +
-  coord_cartesian(xlim = c(0, 10)) +
-  scale_x_continuous(breaks = seq(0, 10, 1), minor_breaks = NULL) +
-  facet_grid(name~redcap_event_name) +
-  labs(x = "Pain Rating", y = "Frequency", title = "Transformed") +
-  theme_bw()
+t_hist <- 
+  ggplot(pdata, aes(value)) +
+    geom_histogram(binwidth = 1) +
+    coord_cartesian(xlim = c(0, 10)) +
+    scale_x_continuous(breaks = seq(0, 10, 1), minor_breaks = NULL) +
+    facet_grid(name~redcap_event_name) +
+    labs(x = "Pain Rating", y = "Frequency", title = "Transformed") +
+    theme_bw()
+t_hist
 
 # linear modeling
 lm_mods <- 
@@ -248,18 +252,118 @@ pdata <-
   as_tibble(gam_omni) %>% 
   mutate(family = if_else(grepl("gaus", model), "Gaussian", "Tweedie")) %>%
   mutate(meas = gsub("_gaus|_tweedie", "", model))
-ggplot(pdata, aes(family, AIC)) + 
-  geom_bar(stat = "identity", width = .2, fill = "grey", color = "black") +
-  labs(x = "Family") +
+aic_plot <-
+  ggplot(pdata, aes(family, AIC)) + 
+    geom_bar(stat = "identity", width = .2, fill = "grey", color = "black") +
+    labs(x = "Family") +
+    theme_bw() +
+    facet_wrap(~meas, scales = "fixed")
+aic_plot
+
+# QQPLOTS
+
+## retrives residuals
+resid_df <- 
+  gam_mods %>% 
+  map(~tibble(resid = residuals(.x))) %>% 
+  list_rbind(names_to = "model")
+
+## plots with ggplot2
+qq_plot <- 
+  ggplot(resid_df, aes(sample = resid)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(
+    x = "Theoretical Quantiles", 
+    y = "Sample Quantiles", 
+    title = "QQ plots of residuals."
+    ) +
   theme_bw() +
-  facet_wrap(~meas, scales = "free")
+  facet_wrap(~model)
 
-# plotting QQ-plots
-par(mfrow = c(2,2), mar = c(4, 4, 2, 1))
-for (i in seq_along(gam_mods)) {
-  qq.gam(gam_mods[[i]], main = names(gam_mods)[i])
+# plotting QQ-plots using base R
+# this doesn't save well with Rscript, so I used ggplot2 above instead
+# keeping here because the code is cool
+# par(mfrow = c(2,2), mar = c(4, 4, 2, 1))
+# for (i in seq_along(gam_mods)) {
+#   qq.gam(gam_mods[[i]], main = names(gam_mods)[i])
+# }
+# qq_plot <- recordPlot() # saves into object
+
+
+# PREDICTIONS ----
+
+## function to help generate + plot predictions
+gen_plot_preds <- function(model, this_title){
+  
+  # generating new data
+  mod_frame <- model.frame(model) # extracts modeling data
+  new_data <- 
+    with(
+      mod_frame, 
+      expand.grid(
+        subject_id = "theoretical",
+        yrs_since_baseline = c(0, 1, 2),
+        PC1 = seq(min(PC1), max(PC1), length.out = 100),
+        PC2 = mean(PC2),
+        PC3 = mean(PC3)
+      )
+    )
+  
+  # generates predictions
+  preds <- predict_link(model, newdat = new_data)
+  
+  # plots predictions
+  p <- 
+    ggplot(preds, aes(PC1, pred_resp)) +
+    geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = .25) +
+    geom_line() +
+    labs(
+      x = "MMH (PC1)", 
+      y = "Predicted Pelvic Pain",
+      title = this_title,
+      caption = "95% CI shading."
+    ) +
+    theme_bw() +
+    facet_wrap(~yrs_since_baseline, labeller = label_both)
+  
+  # returns results as list
+  res <- list(preds = preds, p = p)
+  return(res)
 }
-qq_plot <- recordPlot() # saves into object
 
-# NEXT DO THE PREDICTIONS
+# preallocates
+gam_preds <- gam_mods # copies
+titles <- 
+  c(
+    "Original Units + Gaussian Fit", 
+    "Trans. Units + Gaussian Fit", 
+    "Original Units + Tweedie Fit",
+    "Trans. Units + Tweedie Fit"
+    )
+
+# generates + plots predictions for each model
+for (i in seq_along(gam_mods)) {
+  gam_preds[[i]] <- 
+    gen_plot_preds(gam_mods$pelvic_pain_gaus, titles[i])
+}
+
+# SAVING RESULTS ----
+
+# creates list
+res <- 
+  list(
+    lm_1 = lm_1, # linear regression of PCs with menstrual pain at PV1
+    mod1 = mod1, # mermod of PCs with menstrual pain across PV1 and PV2
+    o_hist = o_hist, # histogram of pelvic pain original units
+    t_hist = t_hist, # historgram of pelvic pain in transformed units
+    gam_mods = gam_mods, # list of GAMs
+    gam_omni = gam_omni, # df of omnibus stats from GAMs
+    gam_ests = gam_ests, # df of estimates from GAMs
+    aic_plot = aic_plot, # plot of the AICs between GAMs (to compare family)
+    qq_plot = qq_plot, # qq plots of the models
+    gam_preds = gam_preds # list of the predictions and plots for each GAM
+  )
+versioned_write_rds(data = res, vi = vinfo) # writes out
+
 
