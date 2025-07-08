@@ -1,0 +1,162 @@
+---
+title: "Analysis of Longitudinal Pain Questions with Principal Components"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  eval: true
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+params:
+  version: v1
+---
+
+```{r, setup, eval=TRUE}
+# libraries ----
+library(tidyverse); library(glue); library(kableExtra); library(here)
+
+# functions ----
+source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+#d <- read_rds(here::here("output", "analysis-long-mmh-v1.rds"))
+
+# gets filename and loads data
+f <- glue("../../output/analysis-long-mmh-{params$version}.rds")
+d <- read_rds(file = f)
+```
+
+## Brief summary
+
+This is version: `r params$version` of this analysis.
+
+This analysis explored whether the first three principal components (PCs) were associated with the change over time of:
+
+1. menstrual pain (`painrating_child_q1`) 
+2. pelvic pain (a composite of `painrating_child_q2`, `painrating_child_q3`, `painrating_child_q4`)
+
+Linear mixed models[^1] were used.
+
+[^1]: I used generalized additive mixed models (GAMs) here. Given that there were no smooth (i.e., non-linear) terms, these became linear mixed models. The advantage of using the GAMs is that the `mgcv` package provides the Tweedie distribution that is useful for zero-inflated data, which is useful for pain ratings that are positively skewed towards zero.
+
+The PCs used came from the PCA that combined both experimentally-derived pain sensitivity estimates and questionnaire data.
+
+As a reminder of the different survey questions:
+
+-   `painrating_child_q1` - Over the last 3 months, what was the average cramping pain you experienced with your period (around or below your belly button or lower back)?
+-   `painrating_child_q2` - Over the last 2 weeks, how much pelvic pain (NOT including any period pain) have you experienced?
+-   `painrating_child_q3` - Please indicate over the last 2 weeks how much pain you have experienced when having a bowel movement.
+-   `painrating_child_q4` - Please indicate over the last 2 weeks how much pain you have experienced when emptying your bladder.
+
+Given the results shown below, here were my observations:
+
+1. MMH was not associated with menstrual pain
+2. MMH was associated with pelvic pain outcome regardless of how the composite was constructed or the underlying assumed distribution
+3. MMH (or any other PC) did not interact with time. Given that there were only two time points, I think this is expected as there is likely not enough data to reliably estimate this.
+
+## Menstrual Pain
+
+```{r}
+ss <- length(unique(model.frame(d$mod1)$subject_id)) # sample size
+```
+
+Menstrual pain was regressed on the fixed effects of years since PV1 (time), PC1 (MMH), PC2, PC3, and the interactions of each PC with time. Random effects were the random intercepts (participants). Family was Gaussian. 
+
+Sample size for this analysis was n=`r ss`.
+
+```{r}
+summary(d$mod1)
+```
+
+We observe an effect of time, such that menstrual pain increases by .6 points per year when adjusted for the PCs. MMH (PC1) is not associated with mentstrual pain.
+
+## Pelvic Pain Composite
+
+Two composites were developed: 
+
+1. a simple average of the three pelvic pain questions (original units)
+2. inverse hyperbolic sine transformation for positively skewed data (transformed)
+
+Below are histograms of these:
+
+```{r, fig.height=6}
+d$o_hist
+```
+
+```{r, fig.height=8}
+d$t_hist
+```
+
+### Linear mixed modeling
+
+```{r}
+ss <- length(unique(model.frame(d$gam_mods$pelvic_pain_gaus)$subject_id)) # sample size
+```
+
+The same model that was ran on the menstrual pain outcome was ran on the pelvic pain composite measures (Gaussian fit). Given the remaining positive skew in the data, I also used the Tweedie family. In total, 4 models were run:
+
+1. Original Units + Gaussian
+2. Original Units + Tweedie
+3. Transformed Units + Gaussian
+4. Transformed Units + Tweedie
+
+The sample size for this analysis was n=`r ss`.
+
+Below are the QQ plots:
+
+```{r, fig.height=5}
+d$qq_plot
+```
+
+And the AIC for each model comparison:
+
+```{r, fig.height=4}
+d$aic_plot
+```
+
+For the pelvic pain composite in the original units, Tweedie was a better fit. For the transformed composite, Gaussian was a better fit. This makes sense as the transformation created a more normal distribution, whereas the original units are still more positively skewed and zero-inflated.
+
+### Omnibus Statistics
+
+```{r}
+kable_pdf(d$gam_omni, cap = "Omnibus Model Statistics")
+```
+
+### Model Estimates
+
+```{r, results='asis'}
+d$gam_ests %>% 
+  split(.$model) %>% 
+  map(~kable_pdf(.x, cap = "Model Estimates", sci_not_cols = "p"))
+#kable_pdf(d$gam_ests, cap = "Model Estimates")
+```
+
+*Note.* Tweedie estimates are on the log scale, so exponentiating the coefficient (`est_exp`) gives the multiplicative change in the expected value of Y for each year increase.
+
+### Model Predictions
+
+The models all had very similar results and therefore the predictions look also very similar. These plots indicate the relationship between MMH (PC1) and pelvic pain outcome at average levels of the other two PCs. They are also plotted for each predicted year since PV1 (ignore that it says years from baseline in the headings).
+
+Note for interpretation that a greater value for MMH is *less* MMH (as the loadings were on the left of the origin in this particular PCA). Therefore, as MMH decreased (greater value), pelvic pain also decreased.
+
+```{r, fig.height=4, fig.width=6}
+d$gam_preds$pelvic_pain_gaus$p
+```
+
+```{r, fig.height=4, fig.width=6}
+d$gam_preds$pelvic_pain_tweedie$p
+```
+
+```{r, fig.height=4, fig.width=6}
+d$gam_preds$pelvic_pain_trans_gaus$p
+```
+
+```{r, fig.height=4, fig.width=6}
+d$gam_preds$pelvic_pain_trans_tweedie$p
+```
