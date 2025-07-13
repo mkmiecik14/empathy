@@ -43,13 +43,13 @@ kable_pdf <- function(data, ..., cap = ""){
   }
 
   data_rounded <- round_df(df = data, ...)
-  kable(
+  knitr::kable(
     data_rounded, 
     format = "latex", booktabs = TRUE, longtable = TRUE, linesep = "", 
     align = "l",
     caption = cap
   ) %>%
-    kable_styling(
+    kableExtra::kable_styling(
       position = "left", 
       latex_options = c("striped", "repeat_header"), 
       stripe_color = "gray!15"
