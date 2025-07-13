@@ -1,0 +1,36 @@
+---
+title: "TITLE GOES HERE"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  eval: true
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+params:
+  version: v1
+---
+
+```{r, setup, eval=TRUE}
+# libraries ----
+# LIBRARIES HERE
+
+# functions ----
+source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+#d <- read_rds(here::here("output", "NAME-OF-DATA-HERE.rds"))
+
+# gets filename and loads data automatically by version info in params
+f <- glue("../../output/analysis-long-mmh-{params$version}.rds")
+d <- read_rds(file = f)
+```
+
+## BEGINNING OF DOC
+
