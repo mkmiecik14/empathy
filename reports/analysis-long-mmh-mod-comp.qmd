@@ -1,0 +1,125 @@
+---
+title: "Model Comparison of Menstrual and Pelvic Pain Outcome by PCA"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+    fig-width: 10
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  eval: true
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+params:
+  version: v1
+---
+
+```{r, setup, eval=TRUE}
+# libraries ----
+library(tidyverse); library(glue)
+
+# functions ----
+source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+#d <- read_rds(here::here("output", "analysis-long-mmh-mod-comp-v1.rds"))
+
+# gets filename and loads data automatically by version info in params
+f <- glue("../../output/analysis-long-mmh-mod-comp-{params$version}.rds")
+d <- read_rds(file = f)
+```
+
+## Brief Summary
+
+This report presents the data analysis and model comparison of the longitudinal models. The main question addressed was whether the principal components (PCs) comprised of the experimental measures and questionnaires were better predictors of outcome relative to PCs from experimental measures only.
+
+The same linear mixed model[^1] was ran on all outcome measures:
+
+```
+gam(outcome ~ 1 + yrs_since_pv1 * (PC1 + PC2 + PC3) + s(subject_id, bs = "re") 
+```
+
+* `yrs_since_pv1` is the number of years since period visit 1 (i.e., time)
+* `PC1` is the first PC (i.e., MMH)
+* `PC2` is the second PC (i.e., pressure pain threshold stimulus-response)
+* `PC3` is the third PC (i.e., bladder hypersensitivity)
+
+Main effects of PCs and their interaction with time were estimated.
+
+The outcome variables were:
+
+1. menstrual pain (`painrating_child_q1`) 
+2. pelvic pain (a composite of `painrating_child_q2`, `painrating_child_q3`, `painrating_child_q4`)
+
+Menstrual pain was normally distributed, but the pelvic pain composite (after simply averaging the three variables) was positively skewed. Therefore, pelvic pain was transformed using a inverse hyperbolic sine [function](https://stats.stackexchange.com/questions/1444/how-should-i-transform-non-negative-data-including-zeros).
+
+In addition, pelvic pain was also modeled using two underlying distributions: Gaussian and Tweedie.
+
+[^1]: I used generalized additive mixed models (GAMs) here. Given that there were no smooth (i.e., non-linear) terms, these became linear mixed models. The advantage of using the GAMs is that the `mgcv` package provides the Tweedie distribution that is useful for zero-inflated data, which is useful for pain ratings that are positively skewed towards zero.
+
+## Findings
+
+When comparing the AIC, BIC, and $R^2$ values from the models that differ by the underlying PCA, there is a slight, but negligible, preference for the Experimental+Questionnaire PCs vs. the Experimental only PCs. In other words, including the questionnaires does not significantly improve the fit or change the results, except in the case below.
+
+Interestingly, in the Experimental only models, PC3 (bladder hypersensitivity) becomes a significant predictor of pelvic pain, but only marginally; however, this is for the Gaussian model. Given that the Tweedie distribution was more appropriate for this variable, this finding should be interpreted with caution.
+
+## R-Squared
+
+```{r}
+d$rsq_plot
+```
+
+## AIC
+
+Note that for AIC, a lower value indicates a better fit.
+
+```{r}
+d$aic_plot
+```
+
+## BIC
+
+Note that for BIC, a lower value indicates a better fit.
+
+```{r}
+d$bic_plot
+```
+
+\pagebreak
+
+## Omnibus Statistics
+
+```{r}
+d$omni %>% 
+  select(Model = model_exp, PCA = pca, r.sq:residual.df) %>%
+  mutate(PCA = if_else(PCA == "exp", "Exp.", "Exp. + Q")) %>%
+  kable_pdf(cap = "Omnibus Model Statistics")
+```
+
+## Model-wise Estimates
+
+Note that for these models, (G) denotes a Gaussian fit, and (Tw) denotes a Tweedie fit.
+
+```{r, results='asis'}
+ests <- 
+  d$ests %>%
+  select(Model = model_exp, PCA = pca, term, estimate, se, t, p) %>%
+  mutate(PCA = if_else(PCA == "exp", "Exp.", "Exp. + Q")) %>%
+  mutate(sig = if_else(p<.05, "*", ""), ) %>%
+  mutate(term = gsub("\\(|\\)","",term))
+mods <- unique(ests$Model)
+for (i in seq_along(mods)) {
+  tmod <- ests %>% filter(Model %in% mods[i])
+  print(
+    kable_pdf(
+      tmod, cap = paste0("Estimates for Model: ", mods[i]), sci_not_col = "p"
+      )
+    )
+}
+```
+
+
