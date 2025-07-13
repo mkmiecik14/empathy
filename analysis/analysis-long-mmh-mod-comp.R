@@ -7,7 +7,7 @@
 # grabs versioning info ----
 source("src/fns/versioning_proc.R")
 vinfo <- 
-  versioning_proc(testing = TRUE, this_script = "analysis-long-mmh-mod-comp")
+  versioning_proc(testing = FALSE, this_script = "analysis-long-mmh-mod-comp")
 
 # libraries ----
 library(tidyverse)
@@ -79,7 +79,7 @@ model_pelvic_gam <-
     rhs <- c(fixed, smooths)
     formula_string <- paste(resp, "~", paste(rhs, collapse = " + "))
     gam_formula <- as.formula(formula_string)
-    mod <- gam(gam_formula, data = data, family = fam, ...)
+    mod <- gam(gam_formula, data = data, family = fam, method = "REML", ...)
     return(mod)
   }
 
@@ -94,7 +94,7 @@ ppt_tw <- mp_g
 
 tw <- Tweedie(p = 1.1) # sets Tweedie distribution
 
-# runs Gaussian models
+# estimates models
 for (i in seq_along(datasets)) {
   
   # menstrual pain - gaussian
@@ -150,7 +150,7 @@ res_list <-
     x
     })
 
-# getting omnibus stats
+# extracting omnibus stats and estimates
 pc_types <- c("exp", "q")
 omni <- vector("list", length = length(pc_types)) -> ests
 for (i in seq_along(pc_types)) {
@@ -173,30 +173,59 @@ for (i in seq_along(pc_types)) {
 }
 
 # combines into df
-omni <- list_rbind(omni)
-ests <- list_rbind(ests)
+omni2 <- 
+  list_rbind(omni) %>%
+  mutate(
+    model_exp = case_when(
+      model == "mp_g" ~ "Menstrual Pain (G)",
+      model == "pp_g" ~ "Pelvic Pain (G)",
+      model == "pp_tw" ~ "Pelvic Pain (Tw)",
+      model == "ppt_g" ~ "Pelvic Pain Trans. (G)",
+      model == "ppt_tw" ~ "Pelvic Pain Trans. (Tw)"
+      )
+    )
+ests2 <- 
+  list_rbind(ests) %>%
+  mutate(
+    model_exp = case_when(
+      model == "mp_g" ~ "Menstrual Pain (G)",
+      model == "pp_g" ~ "Pelvic Pain (G)",
+      model == "pp_tw" ~ "Pelvic Pain (Tw)",
+      model == "ppt_g" ~ "Pelvic Pain Trans. (G)",
+      model == "ppt_tw" ~ "Pelvic Pain Trans. (Tw)"
+    )
+  )
 
 # plotting ----
-ggplot(omni, aes(model, AIC, group = pca, fill = pca)) +
-  geom_bar(stat = "identity", width = .5, position = "dodge", color = "black") +
-  labs(x = "Model") +
-  theme_bw()
 
-ggplot(omni, aes(model, r.sq, group = pca, fill = pca)) +
-  geom_bar(stat = "identity", width = .5, position = "dodge", color = "black") +
-  labs(x = "Model") +
-  theme_bw()
+# function to plot barplots for omnibus model stats
+plot_mod_bar <- function(data, dv){
+  cc <- RColorBrewer::brewer.pal(12, "Set3")
+  tcols <- c(exp = cc[3], q = cc[4])
+  p <-
+    ggplot(omni2, aes(model_exp, {{ dv }}, group = pca, fill = pca)) +
+    geom_bar(stat = "identity", width = .5, position = "dodge", color = "black") +
+    labs(x = "Model", fill = "PCA") +
+    scale_fill_manual(
+      values = tcols, 
+      labels = c("Experimental", "Experimental + Questionniares")
+    ) +
+    theme_bw()
+    return(p)
+}
 
-ggplot(omni, aes(model, BIC, group = pca, fill = pca)) +
-  geom_bar(stat = "identity", width = .5, position = "dodge", color = "black") +
-  labs(x = "Model") +
-  theme_bw()
-
-ests %>% filter(!grepl("(Intercept)", term)) %>%
-  ggplot(aes(estimate, term, group = pca, color = pca)) +
-  geom_point() + 
-  facet_wrap(~model)
-  
+# plots 
+aic_plot <- plot_mod_bar(omni2, AIC)
+bic_plot <- plot_mod_bar(omni2, BIC)
+rsq_plot <- 
+  plot_mod_bar(omni2, r.sq) + 
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(y = expression(R^2))
 
 # saving ----
-# versioned_write_rds(data = [DATA GOES HERE], vi = vinfo) # writes out
+res <- 
+  list(
+    models = res_list, omni = omni2, ests = ests2, aic_plot = aic_plot,
+    bic_plot = bic_plot, rsq_plot = rsq_plot 
+    )
+versioned_write_rds(data = res, vi = vinfo) # writes out
