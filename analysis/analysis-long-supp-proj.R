@@ -11,7 +11,7 @@ vinfo <-
   versioning_proc(testing = TRUE, this_script = "analysis-long-supp-proj")
 
 # libraries ----
-library(tidyverse); library(TInPosition)
+library(tidyverse); library(TInPosition); library(ggrepel)
 
 # data ----
 
@@ -76,21 +76,123 @@ supp_res_exp <-
 supp_res_q <- 
   supplementaryRows(SUP.DATA = supp_data, res = q_pca_res$Fixed.Data)
 
-# plotting movement across components
+# combining observed FI with supplemental projections
 
-## experimental
-exp_fi <- exp_pca_res$pca_res$Fixed.Data$ExPosition.Data$fi # isolates fi data
-exp_ss <- paste0(rownames(exp_fi), "_v0")
-rownames(exp_fi) <- exp_ss
-exp_fi <- rbind(exp_fi, supp_res_exp$fii)
+# function that helps extract fi data and combine with supp projs
+extract_fi <- function(pca_fi_data, supp_fi_data){
+  fi <- pca_fi_data                 # isolates fi data
+  ss <- paste0(rownames(fi), "_v0") # appends visit info to ss
+  rownames(fi) <- ss                # updates rownames
+  fi <- rbind(fi, supp_fi_data)     # rowbinds with supp projections
+  # creates tibble
+  fi_tib <- 
+    as_tibble(fi, rownames = "id") %>% 
+    separate(id, into = c("subject_id", "visit")) %>%
+    mutate(visit = as.numeric(gsub("v", "", visit)))
+  colnames(fi_tib) <- gsub("V", "PC", colnames(fi_tib))
+  return(fi_tib)
+}
 
+# extracts fi data and combines with supplementary projections
 exp_fi_tib <- 
-  as_tibble(exp_fi, rownames = "id") %>% 
-  pivot_longer(-id) %>% mutate(name = gsub("V", "PC", name))
+  extract_fi(exp_pca_res$pca_res$Fixed.Data$ExPosition.Data$fi, supp_res_exp$fii)
+q_fi_tib <- 
+  extract_fi(q_pca_res$Fixed.Data$ExPosition.Data$fi, supp_res_q$fii)
 
-pdata <- exp_fi_tib %>% filter(name %in% c("PC1", "PC2"))
-# I changed my mind, start out with wide and select cols from there
-ggplot(pdata, aes()) 
+# function that helps plot the fis over time/visit
+plot_fi_time <- function(data, pcs = c(1,2), axs_rng = c(-12, 12)){
+  # preps plotting data
+  pdata <- 
+    data %>% 
+    select(subject_id, visit, all_of(c(paste0("PC", pcs)))) %>%
+    mutate(visit = factor(visit, levels = c(0, 1, 2)))
+  
+  # sets colors for each visit
+  tcols <- c("0" = "white", "1" = "grey", "2" = "black")
+  
+  # plots
+  p <- 
+    ggplot(
+      pdata, 
+      aes(
+        !!sym(paste0("PC", pcs[1])), !!sym(paste0("PC", pcs[2])), 
+        group = subject_id, fill = visit
+        )
+      ) +
+    geom_vline(xintercept = 0, linetype = 3) +
+    geom_hline(yintercept = 0, linetype = 3) +
+    geom_path(alpha = 1/2) +
+    geom_point(shape = 21, color = "black") +
+    theme_minimal() +
+    #geom_text_repel(aes(label = subject_id), show.legend = FALSE) +
+    coord_cartesian(xlim = axs_rng, ylim = axs_rng) +
+    scale_fill_manual(values = tcols) + 
+    labs(x = paste0("PC", pcs[1]), y = paste0("PC", pcs[2])) +
+    theme(
+      axis.line = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+  return(p)
+  
+}
+
+# determining axis range of first 3 components
+exp_fi <- exp_pca_res$pca_res$Fixed.Data$ExPosition.Data$fi
+q_fi <- q_pca_res$Fixed.Data$ExPosition.Data$fi
+min(apply(exp_fi[,c(1:3)], 2, min))
+max(apply(exp_fi[,c(1:3)], 2, max))
+min(apply(q_fi[,c(1:3)], 2, min))
+max(apply(q_fi[,c(1:3)], 2, max))
+
+plot_fi_time(data = exp_fi_tib, pcs = c(1, 2), axs_rng = c(-8, 8))  
+plot_fi_time(data = exp_fi_tib, pcs = c(2, 3), axs_rng = c(-8, 8)) 
+plot_fi_time(data = exp_fi_tib, pcs = c(1, 3), axs_rng = c(-8, 8)) 
+
+plot_fi_time(data = q_fi_tib, pcs = c(1, 2), axs_rng = c(-8, 8))  
+plot_fi_time(data = q_fi_tib, pcs = c(2, 3), axs_rng = c(-8, 8)) 
+plot_fi_time(data = q_fi_tib, pcs = c(1, 3), axs_rng = c(-8, 8)) 
+
+# plotting with time on the x-axis ----
+
+# first step is to retrive the timestamps from redcap data
+f <- file.path("data", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI.csv")
+rc_data_raw <- read_csv(file = f)
+rc_data <- 
+  rc_data_raw %>% 
+  select(subject_id, redcap_event_name, todaysdate) %>% 
+  filter(!is.na(subject_id)) %>%
+  mutate(
+    todaysdate = mdy(todaysdate), subject_id = as.character(subject_id)
+    ) %>%
+  mutate(baseline_date = min(todaysdate), .by = subject_id) %>%
+  mutate(
+    yrs_since_baseline = time_length(interval(baseline_date, todaysdate), "years"),
+    visit = case_when(
+      grepl("baseline", redcap_event_name) ~ 0,
+      grepl("visit_1", redcap_event_name) ~ 1,
+      grepl("visit2", redcap_event_name) ~ 2,
+      .default = NA
+      )
+    )
+# data set to use in join
+rc_data_time <- 
+  rc_data %>% 
+  select(subject_id, visit, todaysdate, baseline_date, yrs_since_baseline)
+
+# joins fis with time data
+exp_fi_time <- 
+  left_join(exp_fi_tib, rc_data_time, by = c("subject_id", "visit"))
+q_fi_time <- 
+  left_join(q_fi_tib, rc_data_time, by = c("subject_id", "visit"))
+
+# plot
+ggplot(exp_fi_time, aes(yrs_since_baseline, PC1, group = subject_id)) +
+  geom_line(alpha = 1/2) +
+  labs(x = "Years since Baseline Visit", y = "PC1") +
+  theme_bw()
+  
+# I think for the plots above; we first need to do long format, and then facet_wrap by PC
 
 # saving ----
 # versioned_write_rds(data = [DATA GOES HERE], vi = vinfo) # writes out
