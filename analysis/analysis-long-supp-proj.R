@@ -182,17 +182,76 @@ rc_data_time <-
 
 # joins fis with time data
 exp_fi_time <- 
-  left_join(exp_fi_tib, rc_data_time, by = c("subject_id", "visit"))
+  left_join(exp_fi_tib, rc_data_time, by = c("subject_id", "visit")) %>%
+  mutate(pca = "exp") # for join
 q_fi_time <- 
-  left_join(q_fi_tib, rc_data_time, by = c("subject_id", "visit"))
+  left_join(q_fi_tib, rc_data_time, by = c("subject_id", "visit")) %>%
+  mutate(pca = "q")
 
-# plot
-ggplot(exp_fi_time, aes(yrs_since_baseline, PC1, group = subject_id)) +
+# combines data
+fi_wide <- 
+  bind_rows(exp_fi_time, q_fi_time) %>% 
+  relocate(pca, .before = subject_id) %>%
+  relocate(todaysdate, baseline_date, yrs_since_baseline, .before = PC1)
+
+# converts to long
+fi_long <- 
+  fi_wide %>% 
+  pivot_longer(
+    cols = -c(pca, subject_id, visit, todaysdate, baseline_date, yrs_since_baseline)
+    )
+
+# plot using time
+rdgy <- RColorBrewer::brewer.pal(11, "RdGy")
+pdata <- fi_long %>% filter(name %in% c(paste0("PC", 1:3))) %>% mutate(visit = factor(visit, levels = c(0:2))) 
+ggplot(pdata, aes(yrs_since_baseline, value, group = subject_id)) +
   geom_line(alpha = 1/2) +
-  labs(x = "Years since Baseline Visit", y = "PC1") +
-  theme_bw()
-  
-# I think for the plots above; we first need to do long format, and then facet_wrap by PC
+  geom_smooth(
+    method = "lm", se = TRUE, aes(group = 1), color = rdgy[3], fill = rdgy[3]
+    ) +
+  labs(
+    x = "Years since Baseline Visit", y = "Factor Scores (fi)",
+    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
+    ) +
+  theme_bw() +
+  facet_grid(pca~name, labeller = label_both)
+# it was found that ss 214 does not have a baseline
+
+# plot using visit
+# sets colors for each visit
+tcols <- c("0" = "white", "1" = "grey", "2" = "black")
+ggplot(pdata, aes(visit, value, fill = visit)) +
+  geom_boxplot() +
+  labs(
+    x = "Years since Baseline Visit", y = "Factor Scores (fi)",
+    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
+  ) +
+  theme_bw() +
+  scale_fill_manual(values = tcols) +
+  facet_grid(pca~name, labeller = label_both)
+
+ggplot(pdata %>% filter(pca == "exp"), aes(value)) +
+  geom_histogram(binwidth = .2) +
+  labs(
+    x = "Years since Baseline Visit", y = "Frequency",
+    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
+  ) +
+  theme_bw() +
+  facet_grid(pca~visit, labeller = label_both)
+
+ggplot(pdata %>% filter(pca == "q"), aes(value)) +
+  geom_histogram(binwidth = .2) +
+  labs(
+    x = "Years since Baseline Visit", y = "Frequency",
+    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
+  ) +
+  theme_bw() +
+  facet_grid(pca~visit, labeller = label_both)
+
+# Linear mixed modeling ----
+library(mgcv)
+
+
 
 # saving ----
 # versioned_write_rds(data = [DATA GOES HERE], vi = vinfo) # writes out
