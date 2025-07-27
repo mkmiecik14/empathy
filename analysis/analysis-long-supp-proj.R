@@ -13,6 +13,10 @@ vinfo <-
 # libraries ----
 library(tidyverse); library(TInPosition); library(ggrepel)
 
+# custom functions ----
+source("src/fns/broom_gam.R")
+source("src/fns/predict_link.R")
+
 # data ----
 
 ## PCA data
@@ -231,27 +235,289 @@ ggplot(pdata, aes(visit, value, fill = visit)) +
   facet_grid(pca~name, labeller = label_both)
 
 ggplot(pdata %>% filter(pca == "exp"), aes(value)) +
-  geom_histogram(binwidth = .2) +
+  geom_histogram(binwidth = .5) +
   labs(
     x = "Years since Baseline Visit", y = "Frequency",
     caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
   ) +
   theme_bw() +
-  facet_grid(pca~visit, labeller = label_both)
+  facet_grid(name~visit, labeller = label_both)
 
 ggplot(pdata %>% filter(pca == "q"), aes(value)) +
-  geom_histogram(binwidth = .2) +
+  geom_histogram(binwidth = .5) +
   labs(
     x = "Years since Baseline Visit", y = "Frequency",
     caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
   ) +
   theme_bw() +
-  facet_grid(pca~visit, labeller = label_both)
+  facet_grid(name~visit, labeller = label_both)
 
 # Linear mixed modeling ----
-library(mgcv)
+library(mgcv); library(itsadug)
+fi_long$subject_id <- factor(fi_long$subject_id) # converts ss to factor
+
+# computes generalized additive models with random effect of intercept
+mod <- 
+  fi_long %>% 
+  filter(name %in% c(paste0("PC", 1:3))) %>% # only first three PCs
+  nest_by(pca, name) %>%
+  mutate(
+    mod = list( # LINEAR EFFECT OF TIME
+      gam(
+        value ~ 1 + yrs_since_baseline + s(subject_id, bs = "re"), 
+        data = data, 
+        method = "REML"
+        )
+      ),
+      mod2 = list( # NON-LINEAR EFFECT OF TIME
+        gam(
+          value ~ 1 + s(yrs_since_baseline) + s(subject_id, bs = "re"),
+          data = data, 
+          method = "REML"
+        )
+        )
+    )
+
+# retrieves omnibus model stats and estimates from gams
+mod_omni <- mod %>% reframe(glance_gam(mod))
+mod_ests <- mod %>% reframe(tidy_gam(mod))
+mod2_omni <- mod %>% reframe(glance_gam(mod2))
+mod2_ests <- mod %>% reframe(tidy_gam(mod2))
+
+# combines into one df
+omni <- bind_rows(mod_omni, mod2_omni, .id = "model")
+ests <- bind_rows(mod_ests, mod2_ests, .id = "model")
+
+# retrieves REML tests and AIC comparison
+aic_res <- vector("list", length = nrow(mod))
+names(aic_res) <- paste(mod$pca, mod$name, sep = "_")
+for (i in seq_along(aic_res)) {
+  aic_res[[i]] <- compareML(mod$mod[[i]], mod$mod2[[i]])  
+}
+
+# combines info from all models
+aic <- 
+  aic_res %>% 
+  map("table") %>%
+  list_rbind(names_to = "mod") %>%
+  mutate(model = if_else(Model == "mod$mod[[i]]", 1, 2)) %>%
+  separate(mod, into = c("pca", "name"))
+
+# plots AIC
+ggplot(omni, aes(model, AIC)) +
+  geom_bar(
+    stat = "identity", color = "black", fill = "grey", position = "dodge", 
+    width = .5
+  ) +
+  geom_text(
+    data = aic %>% filter(model == 2), 
+    aes(label = paste0("p=",p.value), y = 1525, x = 1.5)
+    ) +
+  coord_cartesian(ylim = c(1325, 1525)) +
+  theme_bw() +  
+  facet_grid(pca~name)
+
+# getting "new data" for predictions
+new_data <- 
+  with(
+    fi_long, 
+    expand.grid(
+      subject_id = "theoretical_id",
+      yrs_since_baseline = seq(
+        min(yrs_since_baseline, na.rm = TRUE),
+        max(yrs_since_baseline, na.rm = TRUE),
+        length.out = 200
+        )
+    )
+    )
+
+# generates predictions
+pred <- mod %>% reframe(predict_link(mod, newdat = new_data))
+pred_mod2 <- mod %>% reframe(predict_link(mod2, newdat = new_data))
+
+# function to plot predictions
+plot_preds <- function(dat){
+  pmed <- ghibli::ghibli_palettes$PonyoMedium
+  tcols <- c(PC1 = pmed[3], PC2 = pmed[5], PC3 = pmed[7])
+  p <- 
+    ggplot(dat, aes(yrs_since_baseline, pred_resp, color = name, fill = name)) +
+    geom_point(
+      data = fi_long %>% filter(name %in% paste0("PC", 1:3)), 
+      aes(y = value), shape = 19, alpha = 1/3
+      ) +
+    geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/2) +
+    geom_line() +
+    scale_fill_manual(values = tcols) +
+    scale_color_manual(values = tcols) +
+    labs(
+      x = "Years Since Baseline Visit", 
+      y = "Predicted Response (Factor Score)", 
+      caption = "95% CI shading\npoints are observed data."
+    ) +
+    theme_bw() +
+    facet_grid(pca~name, labeller = label_both) +
+    theme(legend.position = "none")
+  return(p)
+}
+
+# plots predictions 
+plot_preds(dat = pred) # linear effect of time
+plot_preds(dat = pred_mod2) # smoothed effect of time
+
+# Examining change over time in pain variables as covariates ----
+
+## brings in pain data and processes further
+pain_data <- 
+  read_rds("output/prepro-long-pain-v1.rds") %>%
+  mutate(
+    visit = case_when(
+      grepl("visit_1", redcap_event_name) ~ 1, 
+      grepl("visit2", redcap_event_name) ~ 2, 
+      .default = NA
+      ),
+    subject_id = factor(subject_id)
+    ) %>%
+  # computes pelvic pain both original and transformed
+  rowwise() %>%
+  mutate(pelvic_pain = mean(c_across(matches("q2|q3|q4")))) %>%
+  ungroup() %>%
+  # work to calculate composite using inverse hyperbolic sine transformation
+  # using asinh()
+  mutate(
+    across(.cols = matches("q2|q3|q4"), .fns = ~asinh(.x), .names = "{.col}_trans") 
+  ) %>%
+  rowwise() %>%
+  mutate(pelvic_pain_trans = mean(c_across(ends_with("trans"))))
+
+# selects data for join
+pain_data_join <- 
+  pain_data %>% 
+  select(
+    subject_id, visit, menst_pain = painrating_child_q1, pelvic_pain, 
+    pelvic_pain_trans
+    )
+
+# joins longitudinal PCA data with menstrual and pelvic pain data
+# fi_long_pain <- 
+#   fi_long %>% left_join(., pain_data_join, by = c("subject_id", "visit"))
+
+# the above effectively discards all baseline data in gamms, so we will
+# first attempt with PV1 menstrual and pelvic pain data
+fi_long_pain <- 
+  fi_long %>% 
+  left_join(
+    ., 
+    pain_data_join %>% filter(visit == 1) %>% select(-visit), 
+    by = c("subject_id")
+    )
+
+## modeling
+mod_data <- fi_long_pain %>% filter(pca == "exp", name == "PC1")
+gamm1 <- 
+  gam(
+    value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + s(subject_id, bs = "re"), 
+    data = mod_data, 
+    method = "REML"
+    )
+summary(gamm1)
+plot.gam(gamm1)
+
+gamm2 <- 
+  gam(
+    value ~ 1 + yrs_since_baseline * (menst_pain + pelvic_pain) + s(subject_id, bs = "re"), 
+    data = mod_data, 
+    method = "REML"
+  )
+summary(gamm2)
+plot.gam(gamm2)
+compareML(gamm1, gamm2)
+
+modeled_data <- model.frame(gamm1) %>% as_tibble()
+new_data <- 
+  with(
+    modeled_data, 
+    expand.grid(
+      subject_id = "theorectical_ss",
+      yrs_since_baseline = seq(
+        min(yrs_since_baseline), max(yrs_since_baseline), length.out = 200
+        ),
+      menst_pain = c(
+        mean(menst_pain), 
+        mean(menst_pain) + 2*sd(menst_pain), 
+        mean(menst_pain) - 2*sd(menst_pain)
+        ),
+      pelvic_pain = c(
+        mean(pelvic_pain), 
+        mean(pelvic_pain) + 2*sd(pelvic_pain), 
+        mean(pelvic_pain) - 2*sd(pelvic_pain)
+      )
+      )
+    ) %>%
+  as_tibble()
+
+preds <- predict_link(mod = gamm1, newdat = new_data) %>% as_tibble()
+
+mpain <- sort(unique(preds$menst_pain))
+pp <- sort(unique(preds$pelvic_pain))
+
+pdata <- 
+  preds %>% 
+  filter(menst_pain %in% mpain[2]) %>% 
+  mutate(pelvic_pain = factor(pelvic_pain))
+ggplot(
+  pdata, # at average menstrual pain
+  aes(yrs_since_baseline, pred_resp, group = pelvic_pain, color = pelvic_pain)
+  ) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/2) +
+  theme_bw()
+
+pdata <- fi_long_pain %>% filter(pca == "exp", name == "PC1")
+ggplot(pdata, aes(pelvic_pain, value)) +
+  geom_point(shape = 19, alpha = 1/2, position = "jitter") +
+  geom_smooth(method = "lm", se = TRUE, color = rdgy[3]) +
+  geom_rug(length = unit(0.01, "npc"), alpha = .5, position = "jitter") +
+  labs(x = "Pelvic Pain", y = "PC1 (MMH)") +
+  theme_bw()
+
+ggplot(pdata, aes(menst_pain, value)) +
+  geom_point(shape = 19, alpha = 1/2, position = "jitter") +
+  geom_smooth(method = "lm", se = TRUE, color = rdgy[3]) +
+  geom_rug(length = unit(0.01, "npc"), alpha = .5, position = "jitter") +
+  labs(x = "Menstrual Pain", y = "PC1 (MMH)") +
+  theme_bw()
 
 
+
+
+
+library(lme4); library(lmerTest)
+mermod1 <- 
+  lmer(
+    value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + (1 | subject_id),
+    data = mod_data, 
+    REML = TRUE
+  )
+summary(mermod1)      
+
+mermod2 <- 
+  lmer(
+    value ~ 1 + yrs_since_baseline * (menst_pain + pelvic_pain) + (1 | subject_id),
+    data = mod_data, 
+    REML = TRUE
+  )
+summary(mermod2) 
+anova(mermod1, mermod2)
+
+mermod3 <- 
+  lmer(
+    value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + (1 | subject_id) +
+      (0 + yrs_since_baseline | subject_id),
+    data = mod_data, 
+    REML = TRUE
+  )
+summary(mermod3)
+anova(mermod1, mermod3)
 
 # saving ----
 # versioned_write_rds(data = [DATA GOES HERE], vi = vinfo) # writes out
