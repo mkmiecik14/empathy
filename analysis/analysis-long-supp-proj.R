@@ -487,9 +487,142 @@ ggplot(pdata, aes(menst_pain, value)) +
   labs(x = "Menstrual Pain", y = "PC1 (MMH)") +
   theme_bw()
 
+## looking at smooth effects
+## modeling
+mod_data <- fi_long_pain %>% filter(pca == "exp", name == "PC1")
+gamm1 <- 
+  gam(
+    value ~ 1 + s(yrs_since_baseline) + s(menst_pain) + s(pelvic_pain) + s(subject_id, bs = "re"), 
+    data = mod_data, 
+    method = "REML"
+  )
+summary(gamm1)
+par(mfrow = c(2,2))
+plot.gam(gamm1)
 
+gamm2 <- 
+  gam(
+    value ~ 1 + s(yrs_since_baseline) + s(menst_pain) + s(pelvic_pain) + 
+      ti(yrs_since_baseline, menst_pain) + 
+      ti(yrs_since_baseline, pelvic_pain) + s(subject_id, bs = "re"), 
+    data = mod_data, 
+    method = "REML"
+  )
+summary(gamm2)
+par(mfrow = c(3, 2))
+plot.gam(gamm2)
+vis.gam(gamm2, view = c("yrs_since_baseline", "pelvic_pain"), plot.type = "persp", 
+        theta = 29, phi = 10, color = "terrain", too.far = .1)
 
+compareML(gamm1, gamm2)
 
+# attempting to run the models efficiently using lists
+data_list <- 
+  fi_long_pain %>%
+  filter(name %in% c(paste0("PC", 1:3))) %>%
+  split(interaction(.$pca, .$name, sep = "_"))
+gamm1 <- gamm2 <- gamm3 <- gamm4 <- list()
+for (i in seq_along(data_list)) {
+  gamm1[[i]] <-
+    gam(
+      value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + 
+        s(subject_id, bs = "re"), 
+      data = data_list[[i]], 
+      method = "REML"
+      )
+  gamm2[[i]] <-
+    gam(
+      value ~ 1 + yrs_since_baseline * (menst_pain + pelvic_pain) +
+        s(subject_id, bs = "re"), 
+      data = data_list[[i]], 
+      method = "REML"
+    )
+  gamm3[[i]] <- 
+    gam(
+      value ~ 1 + s(yrs_since_baseline) + s(menst_pain) + s(pelvic_pain) + 
+        s(subject_id, bs = "re"), 
+      data = data_list[[i]], 
+      method = "REML"
+    )
+  gamm4[[i]] <-
+    gam(
+      value ~ 1 + s(yrs_since_baseline) + s(menst_pain) + s(pelvic_pain) + 
+        ti(yrs_since_baseline, menst_pain) + 
+        ti(yrs_since_baseline, pelvic_pain) + s(subject_id, bs = "re"), 
+    data = data_list[[i]], 
+    method = "REML"
+  )
+  print(paste0("Finished modeling ", names(data_list)[[i]]))
+}
+# names each entry of the list by PCA and PC
+names(gamm4) <- names(gamm3) <- names(gamm2) <- names(gamm1) <- names(data_list)
+
+# procedure for extracting omnibus and estimates (both parametric and smooth)
+gamms <- list(gamm1, gamm2, gamm3, gamm4) # combies gamms into list
+gamm_ests_s <- gamm_ests_para <- gamm_omni <- list() # preallocates list
+for (i in seq_along(gamms)) {
+  # omnibus
+  gamm_omni[[i]] <- 
+    gamms[[i]] %>% 
+    map(~glance_gam(.x)) %>% 
+    list_rbind(names_to = "meas") %>% 
+    mutate(gamm = paste0("gamm", i))
+  # estimates (parametric)
+  gamm_ests_para[[i]] <- 
+    gamms[[i]] %>% 
+    map(~tidy_gam(.x)) %>% 
+    list_rbind(names_to = "meas") %>% 
+    mutate(gamm = paste0("gamm", i))
+  # smooth terms
+  gamm_ests_s[[i]] <- 
+    gamms[[i]] %>% 
+    map(~tidy_gam(.x, type = "smooth")) %>% 
+    list_rbind(names_to = "meas") %>% 
+    mutate(gamm = paste0("gamm", i))
+}
+
+# combines into dataframes
+omni <- list_rbind(gamm_omni) %>% separate(meas, into = c("pca", "pc"))
+ests_p <- list_rbind(gamm_ests_para) %>% separate(meas, into = c("pca", "pc"))
+ests_s <- list_rbind(gamm_ests_s) %>% separate(meas, into = c("pca", "pc"))
+
+## plotting AIC
+ggplot(omni, aes(gamm, AIC)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+  theme_bw() +
+  facet_grid(pca~pc, labeller = label_both)
+
+## plotting R^2
+ggplot(omni, aes(gamm, r.sq)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+  theme_bw() +
+  facet_grid(pca~pc, labeller = label_both)
+
+# next step is to visualize the models in the way that makes most sense for each
+# some have interesting main effects and smooth effects. No interactions with time
+
+# this one is specifically looking at the interesting effect of menstrual pain
+# on PC3 q; 
+# next step, see if you can write a function that chooses which variables to vary
+# and which ones to keep constant
+modeled_data <- model.frame(gamm4[[6]]) %>% as_tibble()
+new_data <- 
+  with(
+    modeled_data, 
+    expand.grid(
+      subject_id = "theoretical_ss",
+      yrs_since_baseline = mean(yrs_since_baseline),
+      menst_pain = seq(min(menst_pain), max(menst_pain), length.out = 200),
+      pelvic_pain = mean(pelvic_pain)
+    )
+    ) %>%
+  as_tibble()
+preds <- predict_link(mod = gamm4[[6]], newdat = new_data) %>% as_tibble()
+ggplot(preds, aes(menst_pain, pred_resp)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = .5)
 
 library(lme4); library(lmerTest)
 mermod1 <- 
