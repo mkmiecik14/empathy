@@ -590,6 +590,7 @@ ests_s <- list_rbind(gamm_ests_s) %>% separate(meas, into = c("pca", "pc"))
 ggplot(omni, aes(gamm, AIC)) +
   geom_point() +
   geom_line(aes(group = 1)) +
+  labs(x = "GAMM") +
   theme_bw() +
   facet_grid(pca~pc, labeller = label_both)
 
@@ -598,59 +599,195 @@ ggplot(omni, aes(gamm, r.sq)) +
   geom_point() +
   geom_line(aes(group = 1)) +
   theme_bw() +
+  labs(x = "GAMM", y = expression(R^2)) +
   facet_grid(pca~pc, labeller = label_both)
 
-# next step is to visualize the models in the way that makes most sense for each
-# some have interesting main effects and smooth effects. No interactions with time
+# function that helps generate new data; allowing some variables to vary
+# from min - max, others will stay the mean, others can be customized
+make_newdata <- function(model, vars_to_vary, length_out = 200, custom_fixed = list()) {
+  # Extract the data used in the model
+  model_data <- model.frame(model)
+  all_vars <- names(model_data)
+  
+  # Check: are variables to vary in the model?
+  if (!all(vars_to_vary %in% all_vars)) {
+    stop("Some variables to vary are not in the model data.")
+  }
+  
+  # Build the list of values to vary
+  vary_list <- lapply(vars_to_vary, function(var) {
+    var_data <- model_data[[var]]
+    if (is.numeric(var_data)) {
+      seq(min(var_data, na.rm = TRUE), max(var_data, na.rm = TRUE), length.out = length_out)
+    } else if (is.factor(var_data)) {
+      levels(var_data)
+    } else {
+      stop(paste("Variable", var, "must be numeric or factor."))
+    }
+  })
+  names(vary_list) <- vars_to_vary
+  
+  # Identify other variables to hold constant
+  fixed_vars <- setdiff(all_vars, vars_to_vary)
+  
+  # Build the fixed list using means or reference levels unless overridden
+  fixed_list <- lapply(fixed_vars, function(var) {
+    if (var %in% names(custom_fixed)) {
+      # Use user-provided custom value
+      return(custom_fixed[[var]])
+    }
+    
+    var_data <- model_data[[var]]
+    if (is.numeric(var_data)) {
+      mean(var_data, na.rm = TRUE)
+    } else if (is.factor(var_data)) {
+      levels(var_data)[1]
+    } else {
+      stop(paste("Variable", var, "must be numeric or factor."))
+    }
+  })
+  names(fixed_list) <- fixed_vars
+  
+  # Combine into a full newdata list
+  newdata_list <- c(vary_list, fixed_list)
+  
+  # Return data frame for prediction
+  res <- expand.grid(newdata_list)
+  return(res)
+}
 
-# this one is specifically looking at the interesting effect of menstrual pain
-# on PC3 q; 
-# next step, see if you can write a function that chooses which variables to vary
-# and which ones to keep constant
-modeled_data <- model.frame(gamm4[[6]]) %>% as_tibble()
-new_data <- 
-  with(
-    modeled_data, 
-    expand.grid(
-      subject_id = "theoretical_ss",
-      yrs_since_baseline = mean(yrs_since_baseline),
-      menst_pain = seq(min(menst_pain), max(menst_pain), length.out = 200),
-      pelvic_pain = mean(pelvic_pain)
+# Named list of GAMM lists
+gamm_lists <- list(gamm1 = gamm1, gamm2 = gamm2, gamm3 = gamm3, gamm4 = gamm4)
+
+# Variables to vary
+vary_vars <- c("yrs_since_baseline", "menst_pain", "pelvic_pain")
+
+# Combine everything using cross-product
+# Output: list of (model, varname) combinations
+# 2. Expand all combinations of model group and variable
+model_var_combos <- 
+  expand_grid(
+    group = names(gamm_lists),
+    var = vary_vars
     )
+
+# 3. For each (group, var), generate predictions across all models inside the group
+all_preds <- 
+  pmap_dfr(
+    model_var_combos,
+    function(group, var) {
+      model_list <- gamm_lists[[group]]
+      
+      # Create newdata for each model in the list
+      new_data_list <- 
+        map(
+          model_list,
+          ~make_newdata(
+            .x, vars_to_vary = var, custom_fixed = list(subject_id = "ss")
+            )
+          )
+      
+      # Predict for each model using the new data
+      map2_dfr(
+        model_list, new_data_list,
+        ~predict_link(.x, .y) %>% as_tibble(),
+        .id = "pca_pc"
+        ) %>%
+        mutate(group = group, var = var)
+      }
     ) %>%
-  as_tibble()
-preds <- predict_link(mod = gamm4[[6]], newdat = new_data) %>% as_tibble()
-ggplot(preds, aes(menst_pain, pred_resp)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = .5)
+  separate(pca_pc, into = c("pca", "pc"))
 
-library(lme4); library(lmerTest)
-mermod1 <- 
-  lmer(
-    value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + (1 | subject_id),
-    data = mod_data, 
-    REML = TRUE
-  )
-summary(mermod1)      
+# converts to factor to reorder resultant plots
+all_preds$var <- 
+  factor(
+    all_preds$var, levels = c("yrs_since_baseline", "pelvic_pain", "menst_pain")
+    )
 
-mermod2 <- 
-  lmer(
-    value ~ 1 + yrs_since_baseline * (menst_pain + pelvic_pain) + (1 | subject_id),
-    data = mod_data, 
-    REML = TRUE
-  )
-summary(mermod2) 
-anova(mermod1, mermod2)
+plot_predictions <- function(
+    preds_df,
+    pc = "PC1",
+    pca = "exp",
+    group = NULL,
+    var_to_plot = NULL,         # NEW ARGUMENT
+    facet_by = NULL,
+    scales = "free_x"
+) {
+  # Filter by PC, pca, group
+  df <- preds_df %>%
+    filter(pc == !!pc, pca == !!pca) %>%
+    { if (!is.null(group)) filter(., group == !!group) else . }
+  
+  # If var_to_plot not provided, infer
+  if (is.null(var_to_plot)) {
+    vars <- unique(df$var)
+    if (length(vars) > 1 && is.null(facet_by)) {
+      stop("Multiple variables found. Please provide `var_to_plot` or set `facet_by`.")
+    }
+    var_to_plot <- vars[1]
+  }
+  
+  # Filter to just that variable
+  df <- df %>% filter(var == var_to_plot)
+  
+  # Extract x-values
+  df <- df %>%
+    mutate(x = .[[var_to_plot]])
+  
+  # Plot
+  p <- ggplot(df, aes(x = x, y = pred_resp)) +
+    geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 0.3) +
+    geom_line() +
+    labs(
+      x = var_to_plot,
+      y = "Predicted Response (Factor Score)",
+      caption = "95% CI error shading"
+    ) +
+    theme_bw()
+  
+  # Optional faceting
+  if (!is.null(facet_by)) {
+    facet_formula <- as.formula(paste("~", paste(facet_by, collapse = "+")))
+    p <- p + facet_wrap(facet_formula, scales = scales, nrow = 1)
+  }
+  
+  return(p)
+}
 
-mermod3 <- 
-  lmer(
-    value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + (1 | subject_id) +
-      (0 + yrs_since_baseline | subject_id),
-    data = mod_data, 
-    REML = TRUE
-  )
-summary(mermod3)
-anova(mermod1, mermod3)
+combos <- 
+  expand.grid(
+    pca = c("exp", "q"),
+    pc = paste0("PC",1:3),
+    var = c("yrs_since_baseline", "pelvic_pain", "menst_pain")
+    )
+
+# generates plots
+pred_plots <- 
+  pmap(
+    combos, 
+    function(pca, pc, var) 
+      plot_predictions(
+        all_preds, pca = pca, pc = pc, var = var, facet_by = "group"
+        )
+    )
+# names them for easy access
+names(pred_plots) <- paste(combos$pca, combos$pc, combos$var, sep = "_")
+
+# next step is to create a function that plots these and saves to a list
+wrap_plots(
+  pred_plots[grepl(pattern = "exp_PC1_*", names(pred_plots))], nrow = 3
+  ) + 
+  plot_annotation(
+    title = "Experimental PCA -- PC1", 
+    theme = theme(plot.title = element_text(hjust = 0.5))
+    )
+
+plots <- 
+  plot_predictions(all_preds, pca = "exp", pc = "PC1", var = "menst_pain", facet_by = "group") +
+  ggtitle("PC1")
+
+
+
 
 # saving ----
 # versioned_write_rds(data = [DATA GOES HERE], vi = vinfo) # writes out
