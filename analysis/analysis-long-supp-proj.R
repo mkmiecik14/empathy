@@ -8,10 +8,10 @@
 # grabs versioning info ----
 source("src/fns/versioning_proc.R")
 vinfo <- 
-  versioning_proc(testing = TRUE, this_script = "analysis-long-supp-proj")
+  versioning_proc(testing = FALSE, this_script = "analysis-long-supp-proj")
 
 # libraries ----
-library(tidyverse); library(TInPosition); library(ggrepel)
+library(tidyverse); library(TInPosition); library(ggrepel); library(patchwork)
 
 # custom functions ----
 source("src/fns/broom_gam.R")
@@ -39,7 +39,6 @@ exp_pca_res <- read_rds(file = f)
 # experimental + questionnaires
 f <- file.path("output", "analysis-pca-3-q-res.rds")
 q_pca_res <- read_rds(file = f)
-
 
 # analysis ----
 
@@ -128,7 +127,6 @@ plot_fi_time <- function(data, pcs = c(1,2), axs_rng = c(-12, 12)){
     geom_path(alpha = 1/2) +
     geom_point(shape = 21, color = "black") +
     theme_minimal() +
-    #geom_text_repel(aes(label = subject_id), show.legend = FALSE) +
     coord_cartesian(xlim = axs_rng, ylim = axs_rng) +
     scale_fill_manual(values = tcols) + 
     labs(x = paste0("PC", pcs[1]), y = paste0("PC", pcs[2])) +
@@ -149,17 +147,28 @@ max(apply(exp_fi[,c(1:3)], 2, max))
 min(apply(q_fi[,c(1:3)], 2, min))
 max(apply(q_fi[,c(1:3)], 2, max))
 
-plot_fi_time(data = exp_fi_tib, pcs = c(1, 2), axs_rng = c(-8, 8))  
-plot_fi_time(data = exp_fi_tib, pcs = c(2, 3), axs_rng = c(-8, 8)) 
-plot_fi_time(data = exp_fi_tib, pcs = c(1, 3), axs_rng = c(-8, 8)) 
-
-plot_fi_time(data = q_fi_tib, pcs = c(1, 2), axs_rng = c(-8, 8))  
-plot_fi_time(data = q_fi_tib, pcs = c(2, 3), axs_rng = c(-8, 8)) 
-plot_fi_time(data = q_fi_tib, pcs = c(1, 3), axs_rng = c(-8, 8)) 
+# stores plots into list
+traj_plots <- 
+  list(
+    exp_12 = 
+      plot_fi_time(data = exp_fi_tib, pcs = c(1, 2), axs_rng = c(-8, 8)) + 
+      ggtitle("Experimental PCA"),
+    exp_23 = 
+      plot_fi_time(data = exp_fi_tib, pcs = c(2, 3), axs_rng = c(-8, 8)) +
+      ggtitle("Experimental PCA"),
+    exp_13 = plot_fi_time(data = exp_fi_tib, pcs = c(1, 3), axs_rng = c(-8, 8)) +
+      ggtitle("Experimental PCA"),
+    q_12 = plot_fi_time(data = q_fi_tib, pcs = c(1, 2), axs_rng = c(-8, 8)) +
+      ggtitle("Questionnaire PCA"),
+    q_23 = plot_fi_time(data = q_fi_tib, pcs = c(2, 3), axs_rng = c(-8, 8)) +
+      ggtitle("Questionnaire PCA"),
+    q_13 = plot_fi_time(data = q_fi_tib, pcs = c(1, 3), axs_rng = c(-8, 8)) +
+      ggtitle("Questionnaire PCA")
+)
 
 # plotting with time on the x-axis ----
 
-# first step is to retrive the timestamps from redcap data
+# first step is to retrieve the timestamps from redcap data
 f <- file.path("data", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI.csv")
 rc_data_raw <- read_csv(file = f)
 rc_data <- 
@@ -208,7 +217,8 @@ fi_long <-
 # plot using time
 rdgy <- RColorBrewer::brewer.pal(11, "RdGy")
 pdata <- fi_long %>% filter(name %in% c(paste0("PC", 1:3))) %>% mutate(visit = factor(visit, levels = c(0:2))) 
-ggplot(pdata, aes(yrs_since_baseline, value, group = subject_id)) +
+lplot <- 
+  ggplot(pdata, aes(yrs_since_baseline, value, group = subject_id)) +
   geom_line(alpha = 1/2) +
   geom_smooth(
     method = "lm", se = TRUE, aes(group = 1), color = rdgy[3], fill = rdgy[3]
@@ -224,7 +234,8 @@ ggplot(pdata, aes(yrs_since_baseline, value, group = subject_id)) +
 # plot using visit
 # sets colors for each visit
 tcols <- c("0" = "white", "1" = "grey", "2" = "black")
-ggplot(pdata, aes(visit, value, fill = visit)) +
+bplot <- 
+  ggplot(pdata, aes(visit, value, fill = visit)) +
   geom_boxplot() +
   labs(
     x = "Years since Baseline Visit", y = "Factor Scores (fi)",
@@ -234,137 +245,37 @@ ggplot(pdata, aes(visit, value, fill = visit)) +
   scale_fill_manual(values = tcols) +
   facet_grid(pca~name, labeller = label_both)
 
-ggplot(pdata %>% filter(pca == "exp"), aes(value)) +
+hplot_exp <- 
+  ggplot(pdata %>% filter(pca == "exp"), aes(value)) +
   geom_histogram(binwidth = .5) +
   labs(
     x = "Years since Baseline Visit", y = "Frequency",
-    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
+    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. ",
+    title = "Experimental PCA"
   ) +
   theme_bw() +
   facet_grid(name~visit, labeller = label_both)
 
-ggplot(pdata %>% filter(pca == "q"), aes(value)) +
+hplot_q <- 
+  ggplot(pdata %>% filter(pca == "q"), aes(value)) +
   geom_histogram(binwidth = .5) +
   labs(
     x = "Years since Baseline Visit", y = "Frequency",
-    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. "
+    caption = "Note that positive factor scores for the Exp. PCA == more MMH\nOpposite is true for Q. PCA. ",
+    title = "Questionnaire PCA"
   ) +
   theme_bw() +
   facet_grid(name~visit, labeller = label_both)
+
+# storing plots into list
+traj_plots_2 <- list(
+  line_plot = lplot, box_plot = bplot, hist_exp = hplot_exp, hist_q = hplot_q
+)
 
 # Linear mixed modeling ----
+# Examining change over time in pain variables as covariates
 library(mgcv); library(itsadug)
 fi_long$subject_id <- factor(fi_long$subject_id) # converts ss to factor
-
-# computes generalized additive models with random effect of intercept
-mod <- 
-  fi_long %>% 
-  filter(name %in% c(paste0("PC", 1:3))) %>% # only first three PCs
-  nest_by(pca, name) %>%
-  mutate(
-    mod = list( # LINEAR EFFECT OF TIME
-      gam(
-        value ~ 1 + yrs_since_baseline + s(subject_id, bs = "re"), 
-        data = data, 
-        method = "REML"
-        )
-      ),
-      mod2 = list( # NON-LINEAR EFFECT OF TIME
-        gam(
-          value ~ 1 + s(yrs_since_baseline) + s(subject_id, bs = "re"),
-          data = data, 
-          method = "REML"
-        )
-        )
-    )
-
-# retrieves omnibus model stats and estimates from gams
-mod_omni <- mod %>% reframe(glance_gam(mod))
-mod_ests <- mod %>% reframe(tidy_gam(mod))
-mod2_omni <- mod %>% reframe(glance_gam(mod2))
-mod2_ests <- mod %>% reframe(tidy_gam(mod2))
-
-# combines into one df
-omni <- bind_rows(mod_omni, mod2_omni, .id = "model")
-ests <- bind_rows(mod_ests, mod2_ests, .id = "model")
-
-# retrieves REML tests and AIC comparison
-aic_res <- vector("list", length = nrow(mod))
-names(aic_res) <- paste(mod$pca, mod$name, sep = "_")
-for (i in seq_along(aic_res)) {
-  aic_res[[i]] <- compareML(mod$mod[[i]], mod$mod2[[i]])  
-}
-
-# combines info from all models
-aic <- 
-  aic_res %>% 
-  map("table") %>%
-  list_rbind(names_to = "mod") %>%
-  mutate(model = if_else(Model == "mod$mod[[i]]", 1, 2)) %>%
-  separate(mod, into = c("pca", "name"))
-
-# plots AIC
-ggplot(omni, aes(model, AIC)) +
-  geom_bar(
-    stat = "identity", color = "black", fill = "grey", position = "dodge", 
-    width = .5
-  ) +
-  geom_text(
-    data = aic %>% filter(model == 2), 
-    aes(label = paste0("p=",p.value), y = 1525, x = 1.5)
-    ) +
-  coord_cartesian(ylim = c(1325, 1525)) +
-  theme_bw() +  
-  facet_grid(pca~name)
-
-# getting "new data" for predictions
-new_data <- 
-  with(
-    fi_long, 
-    expand.grid(
-      subject_id = "theoretical_id",
-      yrs_since_baseline = seq(
-        min(yrs_since_baseline, na.rm = TRUE),
-        max(yrs_since_baseline, na.rm = TRUE),
-        length.out = 200
-        )
-    )
-    )
-
-# generates predictions
-pred <- mod %>% reframe(predict_link(mod, newdat = new_data))
-pred_mod2 <- mod %>% reframe(predict_link(mod2, newdat = new_data))
-
-# function to plot predictions
-plot_preds <- function(dat){
-  pmed <- ghibli::ghibli_palettes$PonyoMedium
-  tcols <- c(PC1 = pmed[3], PC2 = pmed[5], PC3 = pmed[7])
-  p <- 
-    ggplot(dat, aes(yrs_since_baseline, pred_resp, color = name, fill = name)) +
-    geom_point(
-      data = fi_long %>% filter(name %in% paste0("PC", 1:3)), 
-      aes(y = value), shape = 19, alpha = 1/3
-      ) +
-    geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/2) +
-    geom_line() +
-    scale_fill_manual(values = tcols) +
-    scale_color_manual(values = tcols) +
-    labs(
-      x = "Years Since Baseline Visit", 
-      y = "Predicted Response (Factor Score)", 
-      caption = "95% CI shading\npoints are observed data."
-    ) +
-    theme_bw() +
-    facet_grid(pca~name, labeller = label_both) +
-    theme(legend.position = "none")
-  return(p)
-}
-
-# plots predictions 
-plot_preds(dat = pred) # linear effect of time
-plot_preds(dat = pred_mod2) # smoothed effect of time
-
-# Examining change over time in pain variables as covariates ----
 
 ## brings in pain data and processes further
 pain_data <- 
@@ -410,111 +321,6 @@ fi_long_pain <-
     pain_data_join %>% filter(visit == 1) %>% select(-visit), 
     by = c("subject_id")
     )
-
-## modeling
-mod_data <- fi_long_pain %>% filter(pca == "exp", name == "PC1")
-gamm1 <- 
-  gam(
-    value ~ 1 + yrs_since_baseline + menst_pain + pelvic_pain + s(subject_id, bs = "re"), 
-    data = mod_data, 
-    method = "REML"
-    )
-summary(gamm1)
-plot.gam(gamm1)
-
-gamm2 <- 
-  gam(
-    value ~ 1 + yrs_since_baseline * (menst_pain + pelvic_pain) + s(subject_id, bs = "re"), 
-    data = mod_data, 
-    method = "REML"
-  )
-summary(gamm2)
-plot.gam(gamm2)
-compareML(gamm1, gamm2)
-
-modeled_data <- model.frame(gamm1) %>% as_tibble()
-new_data <- 
-  with(
-    modeled_data, 
-    expand.grid(
-      subject_id = "theorectical_ss",
-      yrs_since_baseline = seq(
-        min(yrs_since_baseline), max(yrs_since_baseline), length.out = 200
-        ),
-      menst_pain = c(
-        mean(menst_pain), 
-        mean(menst_pain) + 2*sd(menst_pain), 
-        mean(menst_pain) - 2*sd(menst_pain)
-        ),
-      pelvic_pain = c(
-        mean(pelvic_pain), 
-        mean(pelvic_pain) + 2*sd(pelvic_pain), 
-        mean(pelvic_pain) - 2*sd(pelvic_pain)
-      )
-      )
-    ) %>%
-  as_tibble()
-
-preds <- predict_link(mod = gamm1, newdat = new_data) %>% as_tibble()
-
-mpain <- sort(unique(preds$menst_pain))
-pp <- sort(unique(preds$pelvic_pain))
-
-pdata <- 
-  preds %>% 
-  filter(menst_pain %in% mpain[2]) %>% 
-  mutate(pelvic_pain = factor(pelvic_pain))
-ggplot(
-  pdata, # at average menstrual pain
-  aes(yrs_since_baseline, pred_resp, group = pelvic_pain, color = pelvic_pain)
-  ) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/2) +
-  theme_bw()
-
-pdata <- fi_long_pain %>% filter(pca == "exp", name == "PC1")
-ggplot(pdata, aes(pelvic_pain, value)) +
-  geom_point(shape = 19, alpha = 1/2, position = "jitter") +
-  geom_smooth(method = "lm", se = TRUE, color = rdgy[3]) +
-  geom_rug(length = unit(0.01, "npc"), alpha = .5, position = "jitter") +
-  labs(x = "Pelvic Pain", y = "PC1 (MMH)") +
-  theme_bw()
-
-ggplot(pdata, aes(menst_pain, value)) +
-  geom_point(shape = 19, alpha = 1/2, position = "jitter") +
-  geom_smooth(method = "lm", se = TRUE, color = rdgy[3]) +
-  geom_rug(length = unit(0.01, "npc"), alpha = .5, position = "jitter") +
-  labs(x = "Menstrual Pain", y = "PC1 (MMH)") +
-  theme_bw()
-
-## looking at smooth effects
-## modeling
-mod_data <- fi_long_pain %>% filter(pca == "exp", name == "PC1")
-gamm1 <- 
-  gam(
-    value ~ 1 + s(yrs_since_baseline) + s(menst_pain) + s(pelvic_pain) + s(subject_id, bs = "re"), 
-    data = mod_data, 
-    method = "REML"
-  )
-summary(gamm1)
-par(mfrow = c(2,2))
-plot.gam(gamm1)
-
-gamm2 <- 
-  gam(
-    value ~ 1 + s(yrs_since_baseline) + s(menst_pain) + s(pelvic_pain) + 
-      ti(yrs_since_baseline, menst_pain) + 
-      ti(yrs_since_baseline, pelvic_pain) + s(subject_id, bs = "re"), 
-    data = mod_data, 
-    method = "REML"
-  )
-summary(gamm2)
-par(mfrow = c(3, 2))
-plot.gam(gamm2)
-vis.gam(gamm2, view = c("yrs_since_baseline", "pelvic_pain"), plot.type = "persp", 
-        theta = 29, phi = 10, color = "terrain", too.far = .1)
-
-compareML(gamm1, gamm2)
 
 # attempting to run the models efficiently using lists
 data_list <- 
@@ -587,7 +393,8 @@ ests_p <- list_rbind(gamm_ests_para) %>% separate(meas, into = c("pca", "pc"))
 ests_s <- list_rbind(gamm_ests_s) %>% separate(meas, into = c("pca", "pc"))
 
 ## plotting AIC
-ggplot(omni, aes(gamm, AIC)) +
+aic_plot <- 
+  ggplot(omni, aes(gamm, AIC)) +
   geom_point() +
   geom_line(aes(group = 1)) +
   labs(x = "GAMM") +
@@ -595,12 +402,16 @@ ggplot(omni, aes(gamm, AIC)) +
   facet_grid(pca~pc, labeller = label_both)
 
 ## plotting R^2
-ggplot(omni, aes(gamm, r.sq)) +
+r2_plot <- 
+  ggplot(omni, aes(gamm, r.sq)) +
   geom_point() +
   geom_line(aes(group = 1)) +
   theme_bw() +
   labs(x = "GAMM", y = expression(R^2)) +
   facet_grid(pca~pc, labeller = label_both)
+
+# storing plots in a list
+mod_comp_plots <- list(aic = aic_plot, r2 = r2_plot)
 
 # function that helps generate new data; allowing some variables to vary
 # from min - max, others will stay the mean, others can be customized
@@ -663,15 +474,14 @@ gamm_lists <- list(gamm1 = gamm1, gamm2 = gamm2, gamm3 = gamm3, gamm4 = gamm4)
 vary_vars <- c("yrs_since_baseline", "menst_pain", "pelvic_pain")
 
 # Combine everything using cross-product
-# Output: list of (model, varname) combinations
-# 2. Expand all combinations of model group and variable
+# Expand all combinations of model group and variable
 model_var_combos <- 
   expand_grid(
     group = names(gamm_lists),
     var = vary_vars
     )
 
-# 3. For each (group, var), generate predictions across all models inside the group
+# For each (group, var), generate predictions across all models inside the group
 all_preds <- 
   pmap_dfr(
     model_var_combos,
@@ -709,7 +519,7 @@ plot_predictions <- function(
     pc = "PC1",
     pca = "exp",
     group = NULL,
-    var_to_plot = NULL,         # NEW ARGUMENT
+    var_to_plot = NULL,
     facet_by = NULL,
     scales = "free_x"
 ) {
@@ -773,21 +583,97 @@ pred_plots <-
 # names them for easy access
 names(pred_plots) <- paste(combos$pca, combos$pc, combos$var, sep = "_")
 
-# next step is to create a function that plots these and saves to a list
-wrap_plots(
-  pred_plots[grepl(pattern = "exp_PC1_*", names(pred_plots))], nrow = 3
-  ) + 
-  plot_annotation(
-    title = "Experimental PCA -- PC1", 
-    theme = theme(plot.title = element_text(hjust = 0.5))
+plot_names <- names(pred_plots)
+plot_info <- data.frame(
+  name = plot_names,
+  pca = sapply(strsplit(plot_names, "_"), `[`, 1),
+  pc = sapply(strsplit(plot_names, "_"), `[`, 2),
+  var = sapply(strsplit(plot_names, "_"), `[`, 3),
+  stringsAsFactors = FALSE
+)
+
+
+# Helper function for organizing prediction plots
+organize_pred_plots <- function(plot_list) {
+  # Parse plot names to extract pca, pc, and variable
+  plot_names <- names(plot_list)
+  plot_info <- data.frame(
+    name = plot_names,
+    pca = sapply(strsplit(plot_names, "_"), `[`, 1),
+    pc = sapply(strsplit(plot_names, "_"), `[`, 2),
+    var = sapply(strsplit(plot_names, "_"), `[`, 3),
+    stringsAsFactors = FALSE
+  )
+  
+  # Create composite plots: each PCA-PC combination gets 3 variables stacked vertically
+  pca_pc_combos <- unique(plot_info[, c("pca", "pc")])
+  
+  composite_plots <- list()
+  for (i in seq_len(nrow(pca_pc_combos))) {
+    pca_val <- pca_pc_combos$pca[i]
+    pc_val <- pca_pc_combos$pc[i]
+    
+    # Get plots for this PCA-PC combination
+    matching_plots <- 
+      plot_info$name[plot_info$pca == pca_val & plot_info$pc == pc_val]
+    
+    # Order by variable: yrs_since_baseline, pelvic_pain, menst_pain
+    var_order <- c("yrs_since_baseline", "pelvic_pain", "menst_pain")
+    ordered_plots <- 
+      matching_plots[
+        order(
+          match(plot_info$var[match(matching_plots, plot_info$name)], var_order)
+          )
+        ]
+    
+    # Create composite plot with variables stacked vertically
+    composite_name <- paste(pca_val, pc_val, sep = "_")
+    composite_plots[[composite_name]] <- wrap_plots(
+      plot_list[ordered_plots], 
+      ncol = 1, 
+      nrow = 3
+    ) + plot_annotation(
+      title = paste(toupper(pca_val), "PCA -", pc_val),
+      theme = theme(plot.title = element_text(hjust = 0.5))
     )
+  }
+  
+  # Also group by variable type (original functionality)
+  by_var <- split(plot_list, sapply(strsplit(names(plot_list), "_"), `[`, 3))
+  by_var_composite <- map(by_var, ~wrap_plots(.x, nrow = 2))
+  
+  return(list(
+    individual = plot_list, 
+    composite_by_pca_pc = composite_plots,
+    composite_by_variable = by_var_composite
+  ))
+}
 
-plots <- 
-  plot_predictions(all_preds, pca = "exp", pc = "PC1", var = "menst_pain", facet_by = "group") +
-  ggtitle("PC1")
+# organizes the pred plots
+pred_plots_org  <- organize_pred_plots(pred_plots)
 
+# Create comprehensive plots list
+analysis_plots <- list(
+  trajectory_plots = traj_plots,
+  trajectory_plots_2 = traj_plots_2,
+  model_comparison = mod_comp_plots,
+  prediction_plots = pred_plots_org
+  )
 
-
+# Compile all results
+results <- 
+  list(
+    data = fi_long_pain,
+    model_results = 
+      list(
+        omni = omni, 
+        ests_parametric = ests_p, 
+        ests_smooth = ests_s
+        ),
+    predictions = all_preds,
+    plots = analysis_plots,
+    models = gamm_lists
+  )
 
 # saving ----
-# versioned_write_rds(data = [DATA GOES HERE], vi = vinfo) # writes out
+versioned_write_rds(data = results, vi = vinfo)
