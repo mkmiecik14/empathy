@@ -1,0 +1,319 @@
+---
+title: "Longitudinal Multimodal Hypersensitivity via Supplementary Projections"
+author: "Matthew J. Kmiecik"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  eval: true
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+params:
+  version: v1
+---
+
+*Analysis version: `r params$version`*
+
+*Generated on: `r Sys.Date()`*
+
+```{r setup, eval=TRUE}
+# libraries ----
+library(tidyverse)
+library(patchwork)
+library(glue)
+library(readr)
+library(knitr)
+library(kableExtra)
+
+# functions ----
+source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+
+# gets filename and loads data automatically by version info in params
+f <- glue("../../output/analysis-long-supp-proj-{params$version}.rds")
+# f <- glue("output/analysis-long-supp-proj-{params$version}.rds")
+results <- read_rds(file = f)
+
+# extract components for easier access
+data <- results$data
+model_results <- results$model_results
+predictions <- results$predictions
+plots <- results$plots
+models <- results$models
+
+# number of subjects
+ss <- models$gamm1$exp_PC1$model$subject_id %>% unique() %>% length()
+```
+
+# Overview
+
+This analysis examines longitudinal changes in principal components (PCs) using supplementary projections from previously established PCA models. The approach allows us to track individual participants' MMH profiles (PC1) over time while maintaining consistency with the original factor structure. Additional PCs were also examined: PC2 PPT stimulus-response function and PC3 bladder hypersensitivity. PCs from both the Experimental measure PCA (referred to as `exp`) and the Experimental + Questionnaire PCA (`q`) were examined.
+
+## Key Methods
+
+- **Supplementary Projections**: Project visit 1 and visit 2 data onto baseline PCA factor space
+- **Two PCA Models**: Experimental measures only vs. experimental + questionnaire measures
+- **Longitudinal Modeling**: Generalized Additive Mixed Models (GAMMs) with pain covariates
+- **Model Comparison**: Systematic comparison of linear vs. smooth effects and interactions
+
+## Aim 2
+
+The analysis that most closely corresponds to Aim 2 analysis would be PC1 GAMM2 models for both the exp. and q. PCAs (i.e., regresses MMH on the interaction of menstrual pain and time).
+
+# Trajectory Visualization
+
+## Factor Score Trajectories in PC Space
+
+The following plots show individual participant trajectories through the first three principal components, with visit indicated by fill color.
+
+```{r trajectory-plots-pc-space-exp}
+#| fig-height: 12
+#| fig-cap: "Participant trajectories through Experimental PC space across visits. Each line represents one participant's path from baseline through follow-up visits."
+
+# Create composite plot showing all trajectory combinations
+wrap_plots(plots$trajectory_plots[1:3], nrow = 3) +
+  plot_annotation(
+    title = "Individual Trajectories Across Experimental PC Space"
+    ) +
+  plot_layout(guides = "collect")
+```
+
+```{r trajectory-plots-pc-space-q}
+#| fig-height: 12
+#| fig-cap: "Participant trajectories through Experimental + Questionnaire PC space across visits. Each line represents one participant's path from baseline through follow-up visits."
+
+# Create composite plot showing all trajectory combinations
+wrap_plots(plots$trajectory_plots[4:6], nrow = 3) +
+  plot_annotation(
+    title = "Individual Trajectories Across Questionnaire PC Space"
+    ) +
+  plot_layout(guides = "collect")
+```
+
+## Factor Score Changes Over Time
+
+```{r trajectory-plots-time-series}
+#| fig-height: 6
+#| fig-cap: "Factor scores plotted against years since baseline, showing individual trajectories and overall trends."
+
+plots$trajectory_plots_2$line_plot
+```
+
+```{r trajectory-plots-by-visit-box}
+#| fig-height: 6
+#| fig-cap: "Distribution of factor scores by visit, showing changes in central tendency and variability."
+
+plots$trajectory_plots_2$box_plot
+```
+
+```{r trajectory-plots-by-visit-hist}
+#| fig-height: 6
+#| fig-cap: "Distribution of factor scores by visit, showing changes in central tendency and variability."
+
+plots$trajectory_plots_2$hist_exp
+plots$trajectory_plots_2$hist_q
+```
+
+# Model Comparisons
+
+We fit four different GAMM specifications to examine the optimal modeling approach. Each model similarly regresses the factor score of the PC on time (years since baseline), menstrual pain, and pelvic pain. However, they differ in the linear vs. non-linear estimations and interactions:
+
+1. **GAMM1**: Linear effects only
+2. **GAMM2**: Linear effects with interactions  
+3. **GAMM3**: Smooth effects without interactions
+4. **GAMM4**: Smooth effects with tensor product interactions
+
+All models comprise n=`r ss` participants.
+
+```{r model-comparison-metrics}
+#| fig-height: 6
+#| fig-cap: "Model comparison metrics across PCA and PC combinations."
+
+wrap_plots(
+  plots$model_comparison$aic + ggtitle("AIC Comparison") + scale_x_discrete(labels = c(1:4)),
+  plots$model_comparison$r2 + ggtitle("R² Comparison") + scale_x_discrete(labels = c(1:4)),
+  nrow = 2
+)
+```
+
+## Model Summary Statistics
+
+```{r model-stats-table}
+#| tbl-cap: "Model fit statistics for each PCA-PC combination"
+
+model_results$omni %>%
+  select(pca, pc, gamm, AIC, r.sq, dev.expl) %>%
+  arrange(pca, pc, gamm) %>%
+  kable(
+    digits = 2,
+    col.names = c("PCA", "PC", "Model", "AIC", "R²", "Dev. Explained"),
+    booktabs = TRUE
+  ) %>%
+  kable_styling(latex_options = c("striped", "hold_position", "repeat_header")) %>%
+  pack_rows("Experimental PCA", 1, 12) %>%
+  pack_rows("Questionnaire PCA", 13, 24)
+```
+
+# Prediction Results
+
+## Experimental PCA Results
+
+The following plots show model predictions for the exp. PCA across different covariates and model specifications. 
+
+**Note.** The predictions for one covariate hold the others constant at the sample mean. The covariate used for the prediction runs from its minimum to its maximum observed value. 
+
+```{r pred-plots-exp-pc1}
+#| fig-height: 9
+#| fig-cap: "Predicted responses for Experimental PCA PC1 across all covariates and model types."
+
+plots$prediction_plots$composite_by_pca_pc$exp_PC1
+```
+
+```{r pred-plots-exp-pc2}
+#| fig-height: 9
+#| fig-cap: "Predicted responses for Experimental PCA PC2 across all covariates and model types."
+
+plots$prediction_plots$composite_by_pca_pc$exp_PC2
+```
+
+```{r pred-plots-exp-pc3}
+#| fig-height: 9
+#| fig-cap: "Predicted responses for Experimental PCA PC3 across all covariates and model types."
+
+plots$prediction_plots$composite_by_pca_pc$exp_PC3
+```
+
+## Questionnaire PCA Results
+
+```{r pred-plots-q-pc1}
+#| fig-height: 9
+#| fig-cap: "Predicted responses for Questionnaire PCA PC1 across all covariates and model types."
+
+plots$prediction_plots$composite_by_pca_pc$q_PC1
+```
+
+```{r pred-plots-q-pc2}
+#| fig-height: 9
+#| fig-cap: "Predicted responses for Questionnaire PCA PC2 across all covariates and model types."
+
+plots$prediction_plots$composite_by_pca_pc$q_PC2
+```
+
+```{r pred-plots-q-pc3}
+#| fig-height: 9  
+#| fig-cap: "Predicted responses for Questionnaire PCA PC3 across all covariates and model types."
+
+plots$prediction_plots$composite_by_pca_pc$q_PC3
+```
+
+# Statistical Results
+
+## Parametric Effects
+
+```{r parametric-effects-table}
+#| tbl-cap: "Parametric model effects for time and pain covariates"
+
+model_results$ests_parametric %>%
+  filter(term != "(Intercept)") %>%
+  select(pca, pc, gamm, term, estimate, se, t, p) %>%
+  mutate(
+    sig = if_else(p<.05, "*", "",),
+    p = format(p, scientific = TRUE, digits = 3)
+    ) %>%
+  arrange(pca, pc, gamm, term) %>%
+  kable(
+    digits = 3,
+    col.names = c("PCA", "PC", "Model", "Term", "Estimate", "SE", "t-value", "p-value", "Sig."),
+    booktabs = TRUE
+  ) %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down", "repeat_header"))
+```
+
+```{r parametric-effects-table-sig}
+#| tbl-cap: "Parametric model effects for time and pain covariates - Filtered by significant terms"
+
+model_results$ests_parametric %>%
+  filter(term != "(Intercept)", p < .05) %>%
+  select(pca, pc, gamm, term, estimate, se, t, p) %>%
+  mutate(
+    sig = if_else(p<.05, "*", "",),
+    p = format(p, scientific = TRUE, digits = 3)
+    ) %>%
+  arrange(pca, pc, gamm, term) %>%
+  kable(
+    digits = 3,
+    col.names = c("PCA", "PC", "Model", "Term", "Estimate", "SE", "t-value", "p-value", "Sig."),
+    booktabs = TRUE
+  ) %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down", "repeat_header"))
+```
+
+## Smooth Effects
+
+```{r smooth-effects-table}
+#| tbl-cap: "Smooth term significance tests"
+
+model_results$ests_smooth %>%
+  select(pca, pc, gamm, term, edf, ref.df, F, p) %>%
+  mutate(
+    sig = if_else(p<.05, "*", "",),
+    p = format(p, scientific = TRUE, digits = 3)
+    ) %>%
+  arrange(pca, pc, gamm, term) %>%
+  kable(
+    digits = 3,
+    col.names = c("PCA", "PC", "Model", "Term", "EDF", "Ref.DF", "F", "p-value", "Sig."),
+    booktabs = TRUE
+  ) %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down", "repeat_header"))
+```
+
+```{r smooth-effects-table-sig}
+#| tbl-cap: "Smooth term significance tests - Filtered by significant Non-random Terms"
+
+model_results$ests_smooth %>%
+  filter(p<.05, !grepl("subject_id", term)) %>%
+  select(pca, pc, gamm, term, edf, ref.df, F, p) %>%
+  mutate(
+    sig = if_else(p<.05, "*", "",),
+    p = format(p, scientific = TRUE, digits = 3)
+    ) %>%
+  arrange(pca, pc, gamm, term) %>%
+  kable(
+    digits = 3,
+    col.names = c("PCA", "PC", "Model", "Term", "EDF", "Ref.DF", "F", "p-value", "Sig."),
+    booktabs = TRUE
+  ) %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down", "repeat_header"))
+```
+
+# Discussion
+
+## Key Findings
+
+1. **Trajectory Patterns**: Individual participants show varied trajectories through MMH (PC1), PC2, and PC3 factor space over time, with some showing systematic changes while others remain relatively stable.
+
+2. **Model Selection**: In linear models (i.e., GAMMs 1-2), interaction terms did not dramatically improve model fit. This was also the case for non-linear models (GAMMs 3-4), except for PC1 (MMH). GAMM4 is clearly superior, indicating non-linear effects and their interactions as generating the best fit. However, the interpretation is similar to GAMM1, so for simplicity, I would interpret GAMM1. By inspecting the prediction plots, GAMM4 seems to over fit the data.
+
+3. **Pain Associations**: Pelvic pain is clearly the winner (relative to menstrual pain) in its associations with PCs. Greater pelvic pain was associated with greater MMH (PC1), more sensitive PPTs (PC2), and more sensitive bladder test scores (PC3).
+
+There is something interesting happening with menstrual pain and pelvic pain in the non-linear models of PC3 in the Experimental + Questionnaire PCA. While increased pelvic pain scores are associated with greater factor scores on PC3 (highly sensitive child questionnaire, CSSI, and bladder test scores), menstrual pain has the opposite effect, with greater menstrual pain associated with increased sensitivity on cold pain and PPTs.
+
+4. **Temporal Effects**: In general, MMH (PC1) decreases over time; PC2 increases over time (more sensitive PPTs); PC3 does not change over time (bladder test scores / cold pain). In linear models, there are no interactions of menstrual pain and pelvic pain with time. There is a non-linear interaction of menstrual pain with time on PC2 in GAMM4; however, this is marginal and could be noise. I could investigate further.
+
+## Methodological Notes
+
+- Supplementary projections maintain consistency with baseline PCA structure
+- Missing data handled through complete case analysis
+- Pain covariates from visit 1 to preserve baseline data
+- Random intercepts account for individual differences
+
+---
