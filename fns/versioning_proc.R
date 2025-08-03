@@ -59,7 +59,7 @@ versioned_write_rds <- function(data, vi){
   f_archive <- glue("output/archive/{vi$script}-{vi$version}-{Sys.Date()}.rds")
   
   # writes out
-  write_rds(x = res, file = f_current) # current file based on version
-  write_rds(x = res, file = f_archive) # archived version
+  write_rds(x = data, file = f_current) # current file based on version
+  write_rds(x = data, file = f_archive) # archived version
   
 }
