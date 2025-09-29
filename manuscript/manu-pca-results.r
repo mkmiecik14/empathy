@@ -8,8 +8,9 @@ library(tidyverse); library(RColorBrewer); library(patchwork); library(ggrepel)
 # configuration ----
 CONFIG <- list(
   rdgy  = brewer.pal(11, "RdGy"),
-  major_font_size = 10,
-  minor_font_size = 8
+  major_font_size = 8, #10
+  minor_font_size = 6, #8
+  font_family = "Arial"
 )
 
 # data ----
@@ -148,8 +149,11 @@ plot_bsrs <- function(data, pc = 1, ...){
   p <-
     ggplot(pdata, aes(value, reorder(meas, value), fill = sig)) +
     geom_bar(stat = "identity") +
-    geom_vline(xintercept = c(-crit_val, crit_val), linetype = 2, color = CONFIG$rdgy[10]) +
-    geom_vline(xintercept = 0, linetype = 1, color = "black") +
+    geom_vline(
+      xintercept = c(-crit_val, crit_val), linetype = 2, color = CONFIG$rdgy[10], 
+      linewidth = .25
+      ) +
+    geom_vline(xintercept = 0, linetype = 1, color = "black", linewidth = .25) +
     scale_fill_manual(values = tcol, labels = tlabels) +
     labs(
       x = expression("Bootstrap Ratio (" * italic(t) * ")"), 
@@ -157,16 +161,23 @@ plot_bsrs <- function(data, pc = 1, ...){
       title = this_pc,
       fill = "Bootstrapping\n(2k iterations)"
       ) +
-    theme_bw(base_size = CONFIG$major_font_size) +
+    theme_bw() +
     theme(
+      text = element_text(color = "black"), 
+      axis.text.x = element_text(size = CONFIG$minor_font_size, family = CONFIG$font_family),
+      axis.text.y = element_text(size = CONFIG$minor_font_size-2, family = CONFIG$font_family),
+      axis.title = element_text(size = CONFIG$major_font_size, family = CONFIG$font_family),
+      title = element_text(size = CONFIG$major_font_size, family = CONFIG$font_family),
       legend.title = element_text(
+        size = CONFIG$minor_font_size,
+        family = CONFIG$font_family,
         hjust = 0.5,                    # Center the title horizontally
-        margin = margin(5, 5, 5, 5)     # Add some padding inside the box
+        margin = margin(1, 1, 3, 1)     # Add some padding inside the box
       ),
       legend.title.position = "top",
-      legend.background = element_rect(color = "black"),
+      legend.background = element_rect(color = "black", linewidth = .25),
       legend.position = "inside",
-      legend.position.inside = c(0.98, 0.15),    # x, y coordinates (0-1 scale)
+      legend.position.inside = c(0.98, 0.5),    # x, y coordinates (0-1 scale)
       legend.justification = c(1, 1)     # Anchor point: right, top
       )
   return(p)
@@ -175,7 +186,7 @@ plot_bsrs <- function(data, pc = 1, ...){
 # helps align x-axis post hoc
 bsrs_x_axis <- list(
   coord_cartesian(xlim = c(-8, 8)) , 
-  scale_x_continuous(breaks = seq(-8, 8, 2))
+  scale_x_continuous(breaks = seq(-8, 8, 2), minor_breaks = NULL)
 )
 
 # loops through and plots
@@ -184,8 +195,32 @@ for (i in 1:3) {
   bsrs_plots[[i]] <- plot_bsrs(data = bsrs_long, pc = i) + bsrs_x_axis
 }
 
+# removes legend from the first plot as it is different from the other 2
+bsrs_plots[[1]] <- bsrs_plots[[1]] + guides(fill = "none")
+bsrs_plots[[2]] <- bsrs_plots[[2]] + guides(fill = "none")
+
 # wraps into one column using patchwork
-bsrs_plots_wrapped <- wrap_plots(bsrs_plots, ncol = 1)
+bsrs_plots_wrapped <- 
+  wrap_plots(bsrs_plots, ncol = 1) + 
+  #plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
+  theme(
+    plot.tag = element_text(size = CONFIG$major_font_size, face = "bold"),
+    plot.margin = margin(2, 2, 2, 2),  # Reduce margins: top, right, bottom, left (in points)
+    legend.key.size = unit(0.25, "cm"),        # Smaller legend symbols
+    legend.box.spacing = unit(0.5, "cm"),      # Less spacing
+    legend.text = element_text(size = CONFIG$minor_font_size, family = CONFIG$font_family),
+    axis.line = element_line(linewidth = 0.25),        # Axis lines
+    axis.ticks = element_line(linewidth = 0.25),       # Axis tick marks
+    panel.grid.major = element_line(linewidth = 0.15), # Major grid lines
+    panel.grid.minor = element_line(linewidth = 0.1)  # Minor grid lines
+    )
+bsrs_plots_wrapped
+
+# scree plot (supplemetal figure)
+f <- file.path("output", "manuscript", "bsrs-plot.png")
+save_figure(f, bsrs_plots_wrapped, w = 3.5, h = 6.5, dpi = 300)
+
 
 #######################################
 #                                     #
