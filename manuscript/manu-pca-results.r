@@ -5,6 +5,16 @@
 # libraries ----
 library(tidyverse); library(RColorBrewer); library(patchwork); library(ggrepel)
 
+# functions ----
+source("src/fns/save_figure.r") # custom function
+
+# helper function to create labels for PC axes
+make_label <- function(i, name) {
+  bquote(
+    "PC" * .(i) ~ "-" ~ .(name) ~ "(" * sigma^2 ~ "=" ~ .(round(scree_table$Variance[i], 2)) * "%)"
+  )
+}
+
 # configuration ----
 CONFIG <- list(
   rdgy  = brewer.pal(11, "RdGy"),
@@ -49,7 +59,7 @@ print(scree_table)
 scree_cols <- c("TRUE" = CONFIG$rdgy[3], "FALSE" = CONFIG$rdgy[8])
 scree_plot <- 
   ggplot(scree_table, aes(PC, Variance, )) +
-  geom_path(aes(group = 1), alpha = 1/3) +
+  geom_path(aes(group = 1), color = CONFIG$rdgy[8], linewidth = .25) +
   geom_point(aes(color = p < .05)) +
   labs(
     x = "Principal Component (PC)", 
@@ -65,19 +75,26 @@ scree_plot <-
     ) +
   theme_classic(base_size = CONFIG$minor_font_size) +
   theme(
+    text = element_text(color = "black"),
     legend.title = element_text(
-      size = CONFIG$major_font_size-2,
+      size = CONFIG$minor_font_size,
       hjust = 0.5,                    # Center the title horizontally
       margin = margin(2, 2, 2, 2)     # Add some padding inside the box
     ),
+    legend.box.spacing = unit(.25, "cm"),      # Less spacing
+    legend.key.height = unit(0.35, "cm"),    # Reduce spacing between legend items
     legend.title.position = "top",
     legend.background = element_rect(color = "black", linewidth = .25),
     legend.position = "inside",
     legend.position.inside = c(0.95, 0.95),    # x, y coordinates (0-1 scale)
     legend.justification = c(1, 1),     # Anchor point: right, top
-    legend.text = element_text(size = CONFIG$minor_font_size-2)     # Legend labels
+    legend.text = element_text(size = CONFIG$minor_font_size)     # Legend labels
     )
 scree_plot
+
+# scree plot (supplemental figure)
+f <- file.path("output", "manuscript", "scree-plot.png")
+save_figure(f, scree_plot, w = 3.5, h = 2.6, dpi = 300)
   
 # top 3 PCs
 top_3_pcs <-  sum(pca_res$pca_res$Fixed.Data$ExPosition.Data$t[1:3])
@@ -144,8 +161,8 @@ bsrs_long <-
 plot_bsrs <- function(data, pc = 1, ...){
   tcol <- c("TRUE" = CONFIG$rdgy[3], "FALSE" = CONFIG$rdgy[8])
   tlabels <- c("TRUE" = expression(italic(p) < .05), "FALSE" = expression(italic(p) >= .05))
-  this_pc <- paste0("PC", pc)
-  pdata <- data %>% filter(name == this_pc)
+  pc_names <- c("MMH", "PPT Stimulus-Response", "Bladder Hypersensitivity")
+  pdata <- data %>% filter(name == paste0("PC", pc))
   p <-
     ggplot(pdata, aes(value, reorder(meas, value), fill = sig)) +
     geom_bar(stat = "identity") +
@@ -158,21 +175,21 @@ plot_bsrs <- function(data, pc = 1, ...){
     labs(
       x = expression("Bootstrap Ratio (" * italic(t) * ")"), 
       y = "Measures", 
-      title = this_pc,
+      title = make_label(i = pc, name = pc_names[pc]),
       fill = "Bootstrapping\n(2k iterations)"
       ) +
     theme_bw() +
     theme(
       text = element_text(color = "black"), 
       axis.text.x = element_text(size = CONFIG$minor_font_size, family = CONFIG$font_family),
-      axis.text.y = element_text(size = CONFIG$minor_font_size-2, family = CONFIG$font_family),
+      axis.text.y = element_text(size = CONFIG$minor_font_size, family = CONFIG$font_family),
       axis.title = element_text(size = CONFIG$major_font_size, family = CONFIG$font_family),
-      title = element_text(size = CONFIG$major_font_size, family = CONFIG$font_family),
+      title = element_text(size = CONFIG$minor_font_size, family = CONFIG$font_family),
       legend.title = element_text(
-        size = CONFIG$minor_font_size,
+        size = CONFIG$major_font_size,
         family = CONFIG$font_family,
         hjust = 0.5,                    # Center the title horizontally
-        margin = margin(1, 1, 3, 1)     # Add some padding inside the box
+        margin = margin(4, 4, 6, 4)     # Add some padding inside the box
       ),
       legend.title.position = "top",
       legend.background = element_rect(color = "black", linewidth = .25),
@@ -201,15 +218,15 @@ bsrs_plots[[2]] <- bsrs_plots[[2]] + guides(fill = "none")
 
 # wraps into one column using patchwork
 bsrs_plots_wrapped <- 
-  wrap_plots(bsrs_plots, ncol = 1) + 
-  #plot_layout(guides = "collect") +
+  wrap_plots(bsrs_plots, ncol = 2) + guide_area() +
+  plot_layout(guides = "collect", ncol = 2) +
   plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
   theme(
     plot.tag = element_text(size = CONFIG$major_font_size, face = "bold"),
     plot.margin = margin(2, 2, 2, 2),  # Reduce margins: top, right, bottom, left (in points)
-    legend.key.size = unit(0.25, "cm"),        # Smaller legend symbols
-    legend.box.spacing = unit(0.5, "cm"),      # Less spacing
-    legend.text = element_text(size = CONFIG$minor_font_size, family = CONFIG$font_family),
+    legend.key.size = unit(0.35, "cm"),        # Smaller legend symbols
+    legend.box.spacing = unit(1, "cm"),      # Less spacing
+    legend.text = element_text(size = CONFIG$major_font_size, family = CONFIG$font_family),
     axis.line = element_line(linewidth = 0.25),        # Axis lines
     axis.ticks = element_line(linewidth = 0.25),       # Axis tick marks
     panel.grid.major = element_line(linewidth = 0.15), # Major grid lines
@@ -219,8 +236,7 @@ bsrs_plots_wrapped
 
 # scree plot (supplemetal figure)
 f <- file.path("output", "manuscript", "bsrs-plot.png")
-save_figure(f, bsrs_plots_wrapped, w = 3.5, h = 6.5, dpi = 300)
-
+save_figure(f, bsrs_plots_wrapped, w = 6.5, h = 4.9, dpi = 300)
 
 #######################################
 #                                     #
@@ -256,6 +272,7 @@ nn <- pmax(abs(min_max$min), abs(min_max$max)) + 1 # create a square around this
 plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
 ){
   # plot elements
+  pc_names <- c("MMH", "PPT Stimulus-Response", "Bladder Hypersensitivity") 
   meas_df <- 
     tribble(
       ~"meas", ~"cat",
@@ -307,10 +324,10 @@ plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
     left_join(., meas_df, by = "meas") %>%
     # convert names here
     mutate(meas = case_when(
-      meas == "vis_mean" ~ "Visual Task mean",
-      meas == "vis_slope" ~ "Visual Task slope",
-      meas == "aud_mean" ~ "Auditory Task mean",
-      meas == "aud_slope" ~ "Auditory Task slope",
+      meas == "vis_mean" ~ "VT mean",
+      meas == "vis_slope" ~ "VT slope",
+      meas == "aud_mean" ~ "AT mean",
+      meas == "aud_slope" ~ "AT slope",
       meas == "knee_PPT" ~ "Knee PPT",
       meas == "shoulder_PPT" ~ "Shoulder PPT",
       meas == "knee_CPM" ~ "Knee CPM",
@@ -324,13 +341,13 @@ plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
       meas == "bt7c_redurg" ~ "BT MT urgency",
       meas == "cold_pain_10s" ~ "Cold pain 10s",
       meas == "cold_pain_20s" ~ "Cold pain 20s",
-      meas == "afterpain_knee_1" ~ "Knee after-pain 1",
-      meas == "afterpain_shoulder_1"~ "Shoulder after-pain 1",
-      meas == "afterpain_knee_2" ~ "Knee after-pain 2",
-      meas == "afterpain_shoulder_2" ~ "Shoulder after-pain 2",
-      meas == "afterpain_knee_3" ~ "Knee after-pain 3",
-      meas == "afterpain_shoulder_3" ~ "Shoulder after-pain 3",
-      meas == "afterpain_hand" ~ "Hand after-pain",
+      meas == "afterpain_knee_1" ~ "Knee AP 1",
+      meas == "afterpain_shoulder_1"~ "Shoulder AP 1",
+      meas == "afterpain_knee_2" ~ "Knee AP 2",
+      meas == "afterpain_shoulder_2" ~ "Shoulder AP 2",
+      meas == "afterpain_knee_3" ~ "Knee AP 3",
+      meas == "afterpain_shoulder_3" ~ "Shoulder AP 3",
+      meas == "afterpain_hand" ~ "Hand AP",
       meas == "cssi" ~ "CSSI",
       meas == "bodymap" ~ "Body Map",
       meas == "gss" ~ "GSS",
@@ -348,19 +365,19 @@ plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
     ) +
     geom_vline(xintercept = 0, linetype = 3, linewidth = .25) +
     geom_hline(yintercept = 0, linetype = 3, linewidth = .25) +
-    geom_point(size = .25) +
+    geom_point(size = .5) +
     theme_minimal(base_size = CONFIG$major_font_size) +
     geom_text_repel(
       aes(label = meas), 
       show.legend = FALSE, 
       max.overlaps = maxolaps,
-      family = "Arial",
+      family = CONFIG$font_family,
       segment.size = .5,
-      size = 1.5,
+      size = 1.75,
       segment.alpha = 0.25,
       force = 1,                     # Repulsion strength
-      force_pull = 2,              # Attraction to original position
-      seed = 42 # seed for reproducibility
+      force_pull = 1.5,              # Attraction to original position
+      seed = 43 # seed for reproducibility
       ) +
     coord_cartesian(xlim = axs_rng, ylim = axs_rng) +
     scale_color_manual(values = meas_cols) + 
@@ -369,20 +386,26 @@ plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
         title = "Categorized Measure", 
         override.aes = list(size = 1))
       ) +
-    labs(x = paste0("PC", pcs[1]), y = paste0("PC", pcs[2])) +
+    labs(
+      x = make_label(pcs[1], pc_names[pcs[1]]), 
+      y = make_label(pcs[2], pc_names[pcs[2]])
+      ) +
     theme(
       axis.line = element_blank(),
       axis.text.x = element_blank(),   # Remove x-axis tick labels
       axis.text.y = element_blank(),    # Remove y-axis tick labels
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
+      axis.title = element_text(
+        size = CONFIG$minor_font_size, family = CONFIG$font_family
+        ),
       ## LEGEND
       legend.title = element_text(
         hjust = 0.5,                    # Center the title horizontally
         margin = margin(1, 1, 1, 1),     # Add some padding inside the box
-        size = CONFIG$major_font_size - 2,
+        size = CONFIG$minor_font_size,
         ),
-      legend.text = element_text(size = CONFIG$minor_font_size - 2),
+      legend.text = element_text(size = CONFIG$minor_font_size),
       legend.key.size = unit(0.5, "cm"),        # Smaller legend symbols
       legend.title.position = "top",
       legend.background = element_rect(color = "black", linewidth = .25),
@@ -412,67 +435,14 @@ figure2 <-
   wrap_plots(fjs_plot_list, ncol = 2) + guide_area() +
   plot_layout(guides = "collect", ncol = 2) +
   plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
-  theme(plot.tag = element_text(size = 10, face = "bold"))
+  theme(plot.tag = element_text(size = CONFIG$major_font_size, face = "bold", family = CONFIG$font_family))
+figure2
 
-##############################
-#                            #
-# SAVES FIGURES / TABLES OUT #
-#                            #
-##############################
+# SAVES FJS FIGURE
+f <- file.path("output", "manuscript", "fjs.png")
+save_figure(f, figure2, w = 6.5, h = 4.9, dpi = 300)
 
-# helper function for creating plots
-save_figure <- function(f, p, w, h, units = "in", dpi = 600, both = TRUE) {
-  
-  # Validate inputs
-  if (missing(f) || missing(p)) {
-    stop("Both filename (f) and plot (p) must be provided")
-  }
-  
-  # Extract file components
-  base_name <- tools::file_path_sans_ext(f)
-  file_ext <- tolower(tools::file_ext(f))
-  
-  # If extension provided, use base name; otherwise use full filename as base
-  if (file_ext != "") {
-    final_base <- base_name
-  } else {
-    final_base <- f
-  }
-  
-  if (both) {
-    # Create filenames for both formats
-    png_file <- paste0(final_base, ".png")
-    tiff_file <- paste0(final_base, ".tiff")
-    
-    # Save PNG
-    ggsave(filename = png_file, plot = p, width = w, height = h, 
-           units = units, dpi = dpi, device = "png")
-    
-    # Save TIFF with compression
-    ggsave(filename = tiff_file, plot = p, width = w, height = h, 
-           units = units, dpi = dpi, device = "tiff", compression = "lzw")
-    
-    cat("Files saved:\n", png_file, "\n", tiff_file, "\n")
-    
-  } else {
-    # Save single file
-    if (file_ext == "") {
-      final_file <- paste0(f, ".png")  # Default to PNG
-    } else {
-      final_file <- f
-    }
-    
-    ggsave(filename = final_file, plot = p, width = w, height = h, 
-           units = units, dpi = dpi)
-    
-    cat("File saved:", final_file, "\n")
-  }
-}
 
-# scree plot (supplemetal figure)
-f <- file.path("output", "manuscript", "scree-plot.png")
-save_figure(f, scree_plot, w = 3, h = 2.5)
 
-# figure 2
-f <- file.path("output", "manuscript", "figure-2.png")
-save_figure(f, figure2, w = 5.5, h = 5, dpi = 300)
+
+
