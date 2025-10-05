@@ -6,6 +6,8 @@
 library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
 library(grid)
 
+# Functions ----
+source("src/fns/save_figure.r")
 pts_to_mm <- function(pts) pts / 2.845
 
 # CONFIGURATION ----
@@ -165,3 +167,33 @@ fig <-
 fig
 
 # save out here
+f <- file.path("output", "manuscript", "long-mmh-plot")
+save_figure(f = f, p = fig, w = 6.5, h = 3, units = "in", dpi = 300, both = TRUE)
+
+
+# TABLE OF GAMM RESULTS ----
+p_table <- 
+  df$model_res$mod1_res$est_p %>% 
+  mutate(lwr = estimate - 1.96 * se, upr = estimate + 1.96 * se) %>%
+  mutate(
+    term = case_when(
+    term == "(Intercept)" ~ "Intercept",
+    term == "tanner_breast" ~ "Tanner Stage (Breast)",
+    term == "tanner_hair" ~ "Tanner Stage (Hair)",
+    term == "yrs_since_baseline" ~ "Time",
+    term == "menst_pain_pv" ~ "Menstrual Pain",
+    term == "pelvic_pain_pv" ~ "Pelvic Pain",
+    term == "yrs_since_baseline:menst_pain_pv" ~ "Time * Menstrual Pain",
+    term == "yrs_since_baseline:pelvic_pain_pv" ~ "Time * Pelvic Pain",
+    term == "menst_pain_pv:pelvic_pain_pv" ~ "Menstrual * Pelvic Pain",
+    term == "yrs_since_baseline:menst_pain_pv:pelvic_pain_pv" ~ "Time * Menstrual * Pelvic Pain",
+    .default = NA_character_
+  ),
+  type = "Parametric") %>%
+  select(Term = term, b = estimate, LL = lwr, UL = upr, SE = se, t, p)
+
+# saves out
+f <- file.path("output", "manuscript", "gamm-p-terms-table.csv")
+write_csv(x = p_table, file = f)
+
+# write out a cat() of R2 and AIC values for both models:
