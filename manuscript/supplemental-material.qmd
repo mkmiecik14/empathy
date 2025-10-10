@@ -1,0 +1,37 @@
+---
+title: "[title of manuscript here]: Supplemental Material"
+author: "Authors here"
+date: last-modified
+date-format: "[Last modified:] DD MMM YYYY"
+format:
+  pdf:
+    toc: true
+editor: source
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+  warning: false
+  error: false
+  working-directory: project
+---
+
+```{r, setup}
+library(tidyverse)
+```
+
+## Figures
+
+```{r}
+#| label: scree-plot
+#| fig-cap: "Scree plot indicating variance explained in each principal component and significance from permutations testing."
+#| out-width: "100%"
+
+knitr::include_graphics("../../output/manuscript/scree-plot.png")
+```
+
+## Tables
+
+
+
+

@@ -72,8 +72,14 @@ race_data <-
   )
 
 # helper function for demographic percentages
+ss <- pca_ss
+data <- tanner_data %>% filter(redcap_event_name == "baseline_visit_chi_arm_1")
+count_var <- quo(tanner_breast)
+type <- "cat"
+na_rm <- FALSE
+include_missing_info = TRUE
 get_demo_sum <- function(
-    ss, data = race_data, count_var = race, type = "cat", na_rm = FALSE, 
+    ss, data = race_data, count_var = race, type = "cat", 
     include_missing_info = TRUE) {
   
   # Input validation
@@ -111,18 +117,6 @@ get_demo_sum <- function(
         perc = n / N * 100,
         valid_N = sum(n)  # N excluding missing values
       )
-    
-    # Add missing value row if any
-    if (na_rm == FALSE || any(is.na(filtered_data %>% pull({{ count_var }})))) {
-      res <- res %>%
-        add_row(
-          !!as_name(enquo(count_var)) := NA,
-          n = sum(is.na(filtered_data %>% pull({{ count_var }}))),
-          N = length(matching_ss),
-          perc = sum(is.na(filtered_data %>% pull({{ count_var }}))) / length(matching_ss) * 100,
-          valid_N = sum(!is.na(filtered_data %>% pull({{ count_var }})))
-        )
-    }
     
   } else if (type == "cont") {
     # Fixed: Create proper summary statistics
@@ -254,21 +248,22 @@ lapply(list(pca_age, long_age), attributes) # to see missing
 f <- file.path("output", "tanner-body-gss-data.rds")
 tanner_data <- 
   read_rds(f) %>% 
-  select(subject_id, redcap_event_name, starts_with("tanner"))
+  select(subject_id, redcap_event_name, starts_with("tanner")) %>%
+  mutate(subject_id = as.character(subject_id))
 
 tanner_map <- 
   tanner_data %>% 
   pivot_longer(cols = -c(subject_id, redcap_event_name)) %>%
-  filter(!is.na(value)) %>%
+  #filter(!is.na(value)) %>%
   split(interaction(.$redcap_event_name, .$name)) 
 
 tanner_map_pca <- 
-  tanner_map %>% map(~get_demo_sum(pca_ss, data = .x, value, "cont"))
+  tanner_map %>% map(~get_demo_sum(pca_ss, data = .x, value, "cat"))
 tanner_map_long <- 
-  tanner_map %>% map(~get_demo_sum(long_ss, data = .x, value, "cont"))
+  tanner_map %>% map(~get_demo_sum(long_ss, data = .x, value, "cat"))
 
 # helper function to organize the mapping 
-# (you could incorporate the steps above and also retrive the missing ss)
+# (you could incorporate the steps above and also retrieve the missing ss)
 org_tan_map <- function(map_res){
   res <- 
     map_res %>% 
@@ -277,8 +272,89 @@ org_tan_map <- function(map_res){
   return(res)
 }
 
+# organizes the tanner staging results for table 1
 pca_tanner <- org_tan_map(tanner_map_pca)
 long_tanner <- org_tan_map(tanner_map_long)
 
-# Assembling table
-# code goes here
+# helper function for assembling Table 1
+prep_table1 <- function(data, col = race, colname = "Race", type = "cat"){
+  
+  if (type == "cat") {
+    res <- 
+      data %>% 
+      mutate(Category = colname, .before = 1) %>% 
+      rename(Measure = {{ col }}) %>%
+      mutate(Statistic = paste0(n, " (", round(perc, 2), "%)")) %>%
+      select(Category, Measure, Statistic) %>%
+      mutate(Measure = as.character(Measure))
+  } else if (type == "cont") {
+    res <- 
+      data %>% 
+      mutate(Category = colname) %>% 
+      mutate(Measure = str_to_title( {{ col }} )) %>%
+      mutate(Statistic = paste0(round(mean, 2), " (", round(sd, 2), ")")) %>%
+      select(Category, Measure, Statistic) %>%
+      mutate(Measure = as.character(Measure))
+  }
+
+  return(res)
+}
+
+# assembles PCA table 1
+pca_table_1 <- list(
+  prep_table1(pca_age, col = variable, colname = "Age (years)", type = "cont"),
+  prep_table1(pca_race),
+  prep_table1(pca_eth, col = ethnicity, colname = "Ethnicity"),
+  prep_table1(pca_inc, col = income, colname = "Income"), 
+  pca_tanner %>% 
+    filter(event == "baseline_visit_chi_arm_1", grepl("breast", meas)) %>%
+    prep_table1(col = value, colname = "Tanner Stage (Breast)"),
+  pca_tanner %>% 
+    filter(event == "baseline_visit_chi_arm_1", grepl("hair", meas)) %>%
+    prep_table1(col = value, colname = "Tanner Stage (hair)")
+  
+) %>% 
+  list_rbind(.)
+
+# assembles longitudinal modeling table 1
+long_table_1 <- list(
+  prep_table1(long_age, col = variable, colname = "Age (years)", type = "cont"),
+  prep_table1(long_race),
+  prep_table1(long_eth, col = ethnicity, colname = "Ethnicity"),
+  prep_table1(long_inc, col = income, colname = "Income"), 
+  long_tanner %>% 
+    filter(event == "baseline_visit_chi_arm_1", grepl("breast", meas)) %>%
+    prep_table1(col = value, colname = "Tanner Stage (Breast)"),
+  long_tanner %>% 
+    filter(event == "baseline_visit_chi_arm_1", grepl("hair", meas)) %>%
+    prep_table1(col = value, colname = "Tanner Stage (hair)")
+) %>% 
+  list_rbind(.) 
+
+# assembles and puts finishing touches on Table 1
+table_1 <- 
+  full_join(pca_table_1, long_table_1, by = c("Category", "Measure")) %>%
+  mutate(
+    across(
+      .cols = starts_with("Statistic"), 
+      .fns = ~if_else(is.na(.x), "0 (0%)", .x))
+    ) %>%
+  add_row(
+    Category = "Sample Size", 
+    Measure = "", 
+    Statistic.x = as.character(length(pca_ss)), 
+    Statistic.y = as.character(length(long_ss)),
+    .before = 1 
+    ) %>%
+  rename(PCA = Statistic.x, `Mixed-Modeling` = Statistic.y) %>%
+  mutate(
+    Category = if_else(Category == lag(Category, default = ""), "", Category),
+    Measure = if_else(is.na(Measure), "N/A", Measure)
+    )
+
+# writes out ----
+f <- file.path("output", "manuscript", "manu-table-1.csv")
+write_csv(table_1, file = f)
+
+
+
