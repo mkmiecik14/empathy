@@ -30,13 +30,15 @@ pca_res <- read_rds(f)
 # PROC ----
 
 # sample size of participants at baseline Experimental PCA
+cat("=== TOTAL SAMPLE SIZE (N) ====\n")
 ss <- nrow(pca_res$pca_res$Fixed.Data$ExPosition.Data$X)
 cat(
   sprintf(
-    "Total sample size of participants at baseline with complete data for the Experimental PCA was n=%d",
+    "Total sample size of participants at baseline with complete data for the Experimental PCA was n=%d\n",
     ss
     )
   )
+cat("\n")
 
 ########################
 #                      #
@@ -52,8 +54,9 @@ scree_table <-
     p = pca_res$pca_res$Inference.Data$components$p.vals
     ) %>%
   mutate(PC = 1:nrow(.), .before = Eigenvalue)
-cat("Below is a scree plot table: \n")
-print(scree_table)
+cat("=== SCREE PLOT TABLE ===\n")
+print(knitr::kable(scree_table, format = "simple"))
+cat("\n")
 
 # scree plot
 scree_cols <- c("TRUE" = CONFIG$rdgy[3], "FALSE" = CONFIG$rdgy[8])
@@ -90,15 +93,18 @@ scree_plot <-
     legend.justification = c(1, 1),     # Anchor point: right, top
     legend.text = element_text(size = CONFIG$minor_font_size)     # Legend labels
     )
-scree_plot
 
 # scree plot (supplemental figure)
+cat("=== SAVING SCREE PLOT FIGURE ====\n")
 f <- file.path("output", "manuscript", "scree-plot.png")
 save_figure(f, scree_plot, w = 3.5, h = 2.6, dpi = 300)
-  
+cat("\n")
+
 # top 3 PCs
 top_3_pcs <-  sum(pca_res$pca_res$Fixed.Data$ExPosition.Data$t[1:3])
-cat(sprintf("The top three PCs explained %.2f%% of the variance.", round(top_3_pcs, 2)))
+cat("=== TOP 3 PCs ====\n")
+cat(sprintf("The top three PCs explained %.2f%% of the variance.\n", round(top_3_pcs, 2)))
+cat("\n")
 
 #######################
 #                     #
@@ -108,7 +114,28 @@ cat(sprintf("The top three PCs explained %.2f%% of the variance.", round(top_3_p
 
 f <- file.path("output", "analysis-pca-correlations-v1.rds")
 COR_res <- read_rds(f)
+
+# helper function for getting correlaton results to print nicely
+print_cor_res <- function(pc = "PC1"){
+  res <- 
+    COR_res$cor_res %>% 
+    filter(Parameter1 == pc) %>% 
+    select(Parameter1, Parameter2, r, CI_low, CI_high, p, t, df_error) %>% 
+    mutate(across(where(is.numeric), ~round(.x, 3)))
+  print(knitr::kable(res, format = "simple"))
+}
+
 # write out some code that will print these results out nicely
+cat("==== Correlation results ====\n")
+cat("==== PC 1 ====\n")
+print_cor_res(pc = "PC1")
+cat("\n")
+cat("==== PC 2 ====\n")
+print_cor_res(pc = "PC2")
+cat("\n")
+cat("==== PC 3 ====\n")
+print_cor_res(pc = "PC3")
+cat("\n")
 
 ####################
 #                  #
@@ -234,9 +261,11 @@ bsrs_plots_wrapped <-
     )
 bsrs_plots_wrapped
 
-# scree plot (supplemetal figure)
+# bootstrap ratio plot
+cat("=== SAVING BOOTSTRAP RATIO PLOT ====\n")
 f <- file.path("output", "manuscript", "bsrs-plot.png")
 save_figure(f, bsrs_plots_wrapped, w = 6.5, h = 4.9, dpi = 300)
+cat("\n")
 
 #######################################
 #                                     #
@@ -439,9 +468,10 @@ figure2 <-
 figure2
 
 # SAVES FJS FIGURE
+cat("=== SAVING Fjs FIGURE ====\n")
 f <- file.path("output", "manuscript", "fjs.png")
 save_figure(f, figure2, w = 6.5, h = 4.9, dpi = 300)
-
+cat("\n")
 
 
 
