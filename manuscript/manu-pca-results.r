@@ -331,17 +331,17 @@ plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
       "afterpain_knee_3", "After-Pain",
       "afterpain_shoulder_3", "After-Pain",
       "afterpain_hand", "After-Pain",
-      "cssi", "Supp. Proj. (Survey)",
-      "bodymap", "Supp. Proj. (Survey)",
-      "gss", "Supp. Proj. (Survey)",
-      "hsc_mean", "Supp. Proj. (Survey)"
+      "cssi", "Supp. Proj. (Questionnaire)",
+      "bodymap", "Supp. Proj. (Questionnaire)",
+      "gss", "Supp. Proj. (Questionnaire)",
+      "hsc_mean", "Supp. Proj. (Questionnaire)"
     )
   ppal <- brewer.pal(12, "Paired")
   meas_cols <- 
     c(
       "Visual" = ppal[1], "Auditory" = ppal[2], "PPT" = ppal[3], "CPM" = ppal[4],
       "Bladder" = ppal[5], "Cold Pain" = ppal[6], "After-Pain" = ppal[7], 
-      "Supp. Proj. (Survey)" = ppal[8]
+      "Supp. Proj. (Questionnaire)" = ppal[8]
     )
   # preps data
   fj_long_plot <- 
@@ -433,6 +433,7 @@ plot_fjs <- function(data, pcs = c(1,2), axs_rng = c(-12, 12), maxolaps = 10
         hjust = 0.5,                    # Center the title horizontally
         margin = margin(1, 1, 1, 1),     # Add some padding inside the box
         size = CONFIG$minor_font_size,
+        face = "bold"
         ),
       legend.text = element_text(size = CONFIG$minor_font_size),
       legend.key.size = unit(0.5, "cm"),        # Smaller legend symbols
@@ -464,7 +465,11 @@ figure2 <-
   wrap_plots(fjs_plot_list, ncol = 2) + guide_area() +
   plot_layout(guides = "collect", ncol = 2) +
   plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
-  theme(plot.tag = element_text(size = CONFIG$major_font_size, face = "bold", family = CONFIG$font_family))
+  theme(
+    plot.tag = element_text(
+      size = CONFIG$major_font_size, face = "bold", family = CONFIG$font_family
+      )
+    )
 figure2
 
 # SAVES FJS FIGURE
