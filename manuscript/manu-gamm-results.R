@@ -2,6 +2,11 @@
 # Matt Kmiecik
 # Purpose: generate figures / tables for the manuscript wrt GAMM results
 
+message("================================")
+message("=== MANUSCRIPT GAMM RESULTS ====")
+message("================================")
+message("")
+
 # libraries ----
 library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
 library(grid)
@@ -17,7 +22,7 @@ CONFIG <- list(
   minor_font_size = 6,
   font_family = "Arial",
   font_color = "black",
-  lw = .25 # line width
+  lw = 0.75 # line width
 )
 
 # plot elements for standardization
@@ -73,8 +78,6 @@ df <- read_rds(file = f)
 # gets data that went into modeling
 mod_data <- 
   data.frame(df$model_res$mod1_res$mod$model) %>% as_tibble(rownames = "r")
-min(mod_data$PC1)
-max(mod_data$PC1)
 
 # line plot of supplementary proj. across time (i.e., df$plots$p3)
 obs_mmh_plot <- 
@@ -82,8 +85,8 @@ obs_mmh_plot <-
   geom_hline(yintercept = 0, linetype = 2) +
   geom_line(aes(group = subject_id), alpha = 1/3) +
   geom_smooth(
-    method = "lm", se = TRUE, color = ghibli_palettes$MononokeMedium[3], alpha = 1/2, 
-    fill = ghibli_palettes$MononokeMedium[3] 
+    method = "lm", se = TRUE, color = ghibli_palettes$MononokeMedium[5], alpha = 1/2, 
+    fill = ghibli_palettes$MononokeMedium[5], linewidth = CONFIG$lw 
     ) +
   labs(
     x = "Years Since Baseline Visit", 
@@ -98,7 +101,6 @@ obs_mmh_plot <-
     axis.title.y = element_text_major
   ) +
   cust_annots
-obs_mmh_plot 
 
 # predicted MMH over time
 pdata <- df$preds$time %>% as_tibble()
@@ -107,9 +109,9 @@ pred_mmh_time <-
   geom_hline(yintercept = 0, linetype = 2) +
   geom_ribbon(
     aes(ymin = lwr_resp, ymax = upr_resp), 
-    alpha = 1/3, fill = ghibli_palettes$MononokeMedium[5]
+    alpha = 1/3, fill = ghibli_palettes$MononokeMedium[3]
     ) +
-  geom_line(color = ghibli_palettes$MononokeMedium[5]) +
+  geom_line(color = ghibli_palettes$MononokeMedium[3], linewidth = CONFIG$lw) +
   labs(
     x = "Years Since Baseline Visit", 
     y = "Predicted MMH (PC1 Factor Score)"
@@ -122,7 +124,6 @@ pred_mmh_time <-
     axis.text.y = element_text_minor,
     axis.title.y = element_text_major
   )
-pred_mmh_time
 
 # predicted MMH vs. pelvic pain
 pdata2 <- df$preds$pelvic_pain %>% as_tibble()
@@ -134,7 +135,7 @@ pred_mmh_pp <-
     aes(ymin = lwr_resp, ymax = upr_resp), 
     alpha = 1/3, fill = ghibli_palettes$MononokeMedium[4]
   ) +
-  geom_line(color = ghibli_palettes$MononokeMedium[4]) +
+  geom_line(color = ghibli_palettes$MononokeMedium[4], linewidth = CONFIG$lw) +
   scale_x_continuous(breaks = seq(0, max_pp, 1)) +
   labs(
     x = "Pelvic Pain", 
@@ -148,7 +149,6 @@ pred_mmh_pp <-
     axis.text.y = element_text_minor,
     axis.title.y = element_text_major
   )
-pred_mmh_pp 
 
 # plot list
 plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp)
@@ -164,9 +164,12 @@ fig <-
       family = CONFIG$font_family
       )
     )
-fig
 
 # save out here
+message("==================================")
+message("=== SAVING OUT LONG MMH FIGURE ===")
+message("==================================")
+message("")
 f <- file.path("output", "manuscript", "long-mmh-plot")
 save_figure(f = f, p = fig, w = 6.5, h = 3, units = "in", dpi = 300, both = TRUE)
 
@@ -193,6 +196,10 @@ p_table <-
   select(Term = term, b = estimate, LL = lwr, UL = upr, SE = se, t, p)
 
 # saves out
+message("=============================")
+message("=== SAVING OUT GAMM TABLE ===")
+message("=============================")
+message("")
 f <- file.path("output", "manuscript", "gamm-p-terms-table.csv")
 write_csv(x = p_table, file = f)
 
