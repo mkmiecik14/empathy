@@ -9,7 +9,7 @@
 source("src/fns/versioning_proc.R")
 vinfo <- 
   versioning_proc(
-    testing = FALSE, 
+    testing = TRUE, 
     this_script = "analysis-long-supp-proj-simplified"
     )
 
@@ -179,6 +179,76 @@ p4 <-
   theme_bw() +
   theme(legend.position = "none")
 p4
+
+# Observed and predicted quartiles for pelvic pain (and menstrual pain) ----
+pain_quartiles <- 
+  mod1_data %>% 
+  select(subject_id, menst_pain_pv, pelvic_pain_pv) %>% 
+  distinct() %>%
+  mutate(
+    across(
+      .cols = contains("pain"), 
+      .fns = ~ntile(.x, 4), 
+      .names = "{.col}_q")
+    )
+# quartile boundaries 
+quartile_boundaries <- 
+  list(
+    menst_pain = quantile(pain_quartiles$menst_pain_pv, probs = c(0, 0.25, 0.5, 0.75, 1)),
+    pelvic_pain = quantile(pain_quartiles$pelvic_pain_pv, probs = c(0, 0.25, 0.5, 0.75, 1))
+)
+
+pain_quartiles_long <- 
+  mod1_data %>% 
+  left_join(
+    ., 
+    pain_quartiles, 
+    join_by(subject_id, menst_pain_pv, pelvic_pain_pv)
+    ) %>%
+  select(subject_id, visit, ends_with("q"), PC1) %>%
+  pivot_longer(cols = -c(subject_id, visit, PC1)) %>%
+  mutate(value = case_when(
+    value == 1 ~ "low",
+    value %in% c(2:3) ~ "middle",
+    value == 4 ~ "high",
+    .default = NA
+  ))
+
+pain_quartiles_sum <- 
+  pain_quartiles_long %>% 
+  summarise(
+    m = mean(PC1), sd = sd(PC1), n = n(), sem = sd/sqrt(n), 
+    ll = m - qt(0.975, n-1)*sem, ul = m + qt(0.975, n-1)*sem,
+    .by = c(visit, name, value))
+
+pd <- position_dodge(width = .2)
+ggplot(
+  pain_quartiles_sum, 
+  aes(visit, m, group = value, color = value, fill = value)
+  ) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_point(position = pd) +
+  geom_errorbar(aes(ymin = ll, ymax = ul), width = .2, position = pd) +
+  geom_line(position = pd) +
+  theme_classic() +
+  facet_wrap(~name)
+
+# now looking at predicted
+
+# quartiles of pelvic pain (keeping constant everything else)
+newdata_pelvic_q <- 
+  with(
+    mod$model, 
+    expand.grid(
+      subject_id = "theoretical_subject",
+      tanner_breast = mean(tanner_breast),
+      tanner_hair = mean(tanner_hair),
+      yrs_since_baseline = mean(yrs_since_baseline),
+      menst_pain_pv = mean(menst_pain_pv),
+      pelvic_pain_pv = quantile(pelvic_pain_pv, probs = c(0, 0.25, 0.5, 0.75, 1))
+      )
+    )
+  )
 
 # saving out results ----
 res <- list(
