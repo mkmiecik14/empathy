@@ -236,6 +236,7 @@ ggplot(
 # now looking at predicted
 
 # quartiles of pelvic pain (keeping constant everything else)
+this_probs <- c(.25, .5, .75, 1)
 newdata_pelvic_q <- 
   with(
     mod$model, 
@@ -243,12 +244,70 @@ newdata_pelvic_q <-
       subject_id = "theoretical_subject",
       tanner_breast = mean(tanner_breast),
       tanner_hair = mean(tanner_hair),
-      yrs_since_baseline = mean(yrs_since_baseline),
+      yrs_since_baseline = seq(
+        min(yrs_since_baseline), max(yrs_since_baseline), length.out = 200
+      ),
       menst_pain_pv = mean(menst_pain_pv),
-      pelvic_pain_pv = quantile(pelvic_pain_pv, probs = c(0, 0.25, 0.5, 0.75, 1))
+      # upper limits of quartiles
+      pelvic_pain_pv = quantile(pelvic_pain_pv, probs = this_probs)
       )
     )
-  )
+
+# setting up labels and colors for the quartiles ---- 
+
+# CREATING COLOR PALLETE
+library(ghibli); library(colorspace)
+my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
+
+# Or use lighten() to create steps
+colors <- lighten(my_color, amount = seq(0.8, 0, length.out = 4))
+
+# Visualize
+barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
+
+# SETTING COLORS AND LABELS
+pelvic_q_vec <- unique(newdata_pelvic_q$pelvic_pain_pv)
+names(pelvic_q_vec) <- scales::percent(this_probs)
+names(colors) <- scales::percent(this_probs)
+
+pred_pelvic_q <- 
+  predict_link(mod = mod, newdat = newdata_pelvic_q) %>%
+  mutate(
+    tile_group = cut(
+      pelvic_pain_pv, 
+      breaks = c(-Inf, pelvic_q_vec),  # Use -Inf instead of 0
+      labels = c(names(pelvic_q_vec)), 
+      include.lowest = TRUE
+      ),
+    tile_group_label = paste0(tile_group, " (", round(pelvic_pain_pv, 2), ")")
+    ) 
+
+# Create a named vector for labels
+label_lookup <- 
+  setNames(pred_pelvic_q$tile_group_label, pred_pelvic_q$tile_group)
+
+ggplot(
+  pred_pelvic_q, 
+  aes(
+    yrs_since_baseline, pred_resp, group = tile_group, 
+    color = tile_group, fill = tile_group
+    )
+  ) +
+  geom_hline(yintercept = 0, linetype = 2, alpha = 1/2) +
+  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3) +
+  geom_line() +
+  coord_cartesian(ylim = c(-8, 8)) +
+  labs(
+    x = "Years Since Baseline Visit", 
+    y = "Predicted MMH (PC1)", 
+    color = "Upper Quartile Boundary",
+    fill = "Upper Quartile Boundary"
+  ) +
+  scale_color_manual(values = colors, labels = label_lookup) +
+  scale_fill_manual(values = colors, labels = label_lookup) +
+  scale_y_continuous(breaks = seq(-8, 8, 2)) +
+  theme_classic()
+
 
 # saving out results ----
 res <- list(
