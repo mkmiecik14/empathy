@@ -9,7 +9,7 @@ message("")
 
 # libraries ----
 library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
-library(grid)
+library(grid); library(colorspace)
 
 # Functions ----
 source("src/fns/save_figure.r")
@@ -149,6 +149,147 @@ pred_mmh_pp <-
     axis.text.y = element_text_minor,
     axis.title.y = element_text_major
   )
+
+# PLOTTING QUARTILE PLOTS ---
+
+# Observed quartiles for pelvic pain
+pd <- position_dodge(width = .2)
+pj <- position_jitter(width = .2)
+pdata_ss <- 
+  df$obs_quartiles_ss %>% 
+  filter(name == "pelvic_pain_pv_q") %>%
+  mutate(
+    visit = factor(
+      visit, 
+      levels = c(0:2), 
+      labels = c("Baseline", "Post-Menarche Visit 1", "Post-Menarche Visit 2")
+      )
+    )
+pdata_sum <- 
+  df$obs_quartiles_sum %>% 
+  filter(name == "pelvic_pain_pv_q") %>%
+  mutate(
+    value = factor(value, levels = c("low", "middle", "high")),
+    value_label = case_when(
+      value == "low" ~ "Low (0-25%)",
+      value == "middle" ~ "Middle (25-75%)",
+      value == "high" ~ "High (75-100%)",
+      .default = NA
+      ),
+    visit = factor(
+      visit, 
+      levels = c(0:2), 
+      labels = c("Baseline", "Post-Menarche Visit 1", "Post-Menarche Visit 2")
+    )
+    )
+
+# CREATING COLOR PALLETE
+my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
+colors <- lighten(my_color, amount = seq(0.6, 0, length.out = 3))
+barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
+names(colors) <- c("low", "middle", "high")
+
+label_lookup <- setNames(pdata_sum$value_label, pdata_sum$value)
+ggplot(
+  pdata_sum,
+  aes(visit, m, group = value, color = value, fill = value)
+  ) +
+  geom_point(data = pdata_ss, aes(y = PC1), shape = 16, alpha = 1/3, position = pj) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_point(position = pd) +
+  geom_errorbar(aes(ymin = ll, ymax = ul), width = .2, position = pd) +
+  geom_line(position = pd) +
+  labs(
+    x = "Visit", y = "Observed MMH PC1", fill = "Pelvic Pain Quartile Group",
+    color = "Pelvic Pain Quartile Group"
+    ) +
+  coord_cartesian(ylim = c(-8, 8)) +
+  scale_y_continuous(breaks = seq(-8, 8, 2)) +
+  scale_color_manual(values = colors, labels = label_lookup) +
+  scale_fill_manual(values = colors, labels = label_lookup) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text_minor,
+    axis.title.x = element_text_major,
+    axis.text.y = element_text_minor,
+    axis.title.y = element_text_major,
+    # LEGEND =========================
+    legend.position = "bottom",
+    #legend.position.inside = c(.2, .1),
+    legend.background = element_rect(color = "black"),
+    legend.box = "vertical",
+    legend.box.just = "center",
+    legend.title.position = "top",
+    legend.title = element_text(
+      hjust = .5, size = CONFIG$major_font_size, family = CONFIG$font_family, 
+      color = CONFIG$font_color
+      ),
+    legend.text = element_text_minor
+  )
+# FINISHED THIS ONE; NOW DO THE PREDICTED!
+
+# setting up labels and colors for the quartiles ----
+# # CREATING COLOR PALLETE
+# library(ghibli); library(colorspace)
+# my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
+# 
+# # Or use lighten() to create steps
+# colors <- lighten(my_color, amount = seq(0.8, 0, length.out = 4))
+# 
+# # Visualize
+# barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
+# 
+# names(colors) <- scales::percent(this_probs$pelvic_pain)
+
+# SETTING COLORS AND LABELS
+pelvic_q_vec <- unique(newdata_pelvic_q$pelvic_pain_pv)
+names(pelvic_q_vec) <- scales::percent(this_probs$pelvic_pain)
+
+pred_pelvic_q <-
+  predict_link(mod = mod, newdat = newdata_pelvic_q) %>% # REMOVE THIS AS PREDICTIONS WERE ALREADY DONE!
+  mutate(
+    tile_group = cut(
+      pelvic_pain_pv,
+      breaks = c(-Inf, pelvic_q_vec),  # Use -Inf instead of 0
+      labels = c(names(pelvic_q_vec)),
+      include.lowest = TRUE
+    ),
+    tile_group_label = paste0(tile_group, " (", round(pelvic_pain_pv, 2), ")")
+  )
+
+# # Create a named vector for labels
+# label_lookup <- 
+#   setNames(pred_pelvic_q$tile_group_label, pred_pelvic_q$tile_group)
+# 
+# ggplot(
+#   pred_pelvic_q, 
+#   aes(
+#     yrs_since_baseline, pred_resp, group = tile_group, 
+#     color = tile_group, fill = tile_group
+#   )
+# ) +
+#   geom_hline(yintercept = 0, linetype = 2, alpha = 1/2) +
+#   geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3) +
+#   geom_line() +
+#   coord_cartesian(ylim = c(-8, 8)) +
+#   labs(
+#     x = "Years Since Baseline Visit", 
+#     y = "Predicted MMH (PC1)", 
+#     color = "Pelvic Pain\nUpper Quartile Boundary",
+#     fill = "Pelvic Pain\nUpper Quartile Boundary"
+#   ) +
+#   scale_color_manual(values = colors, labels = label_lookup) +
+#   scale_fill_manual(values = colors, labels = label_lookup) +
+#   scale_y_continuous(breaks = seq(-8, 8, 2)) +
+#   theme_classic() +
+#   theme(
+#     legend.position = "inside",
+#     legend.position.inside = c(.2, .2),
+#     legend.background = element_rect(color = "black"),
+#     legend.title = element_text(hjust = .5)
+#   )
+
+# ASSEMBLING PLOT ----
 
 # plot list
 plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp)
