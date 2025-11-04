@@ -215,7 +215,6 @@ ggplot(
     axis.title.y = element_text_major,
     # LEGEND =========================
     legend.position = "bottom",
-    #legend.position.inside = c(.2, .1),
     legend.background = element_rect(color = "black"),
     legend.box = "vertical",
     legend.box.just = "center",
@@ -228,66 +227,72 @@ ggplot(
   )
 # FINISHED THIS ONE; NOW DO THE PREDICTED!
 
-# setting up labels and colors for the quartiles ----
-# # CREATING COLOR PALLETE
-# library(ghibli); library(colorspace)
-# my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
-# 
-# # Or use lighten() to create steps
-# colors <- lighten(my_color, amount = seq(0.8, 0, length.out = 4))
-# 
-# # Visualize
-# barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
-# 
-# names(colors) <- scales::percent(this_probs$pelvic_pain)
 
-# SETTING COLORS AND LABELS
-pelvic_q_vec <- unique(newdata_pelvic_q$pelvic_pain_pv)
-names(pelvic_q_vec) <- scales::percent(this_probs$pelvic_pain)
 
-pred_pelvic_q <-
-  predict_link(mod = mod, newdat = newdata_pelvic_q) %>% # REMOVE THIS AS PREDICTIONS WERE ALREADY DONE!
+
+# PREDICTED QUARTILE BOUNDARIES
+
+# sets names of this vector to use dynamically 
+# these are wrong for some reason...go back to original script and fix
+q_vec <- as_vector(df$quartile_preds$pelvic_pain$pelvic_pain_pv) %>% unique()
+names(q_vec) <- names(df$quartile_boundaries$pelvic_pain[-1]) # drops 0% as it is the same as %25
+colors <- lighten(my_color, amount = seq(0.8, 0, length.out = length(q_vec)))
+
+# plot data
+pdata <- 
+  df$quartile_preds$pelvic_pain %>% 
   mutate(
     tile_group = cut(
       pelvic_pain_pv,
-      breaks = c(-Inf, pelvic_q_vec),  # Use -Inf instead of 0
-      labels = c(names(pelvic_q_vec)),
+      breaks = c(-Inf, q_vec),  # Use -Inf instead of 0
+      labels = c(names(q_vec)),
       include.lowest = TRUE
     ),
     tile_group_label = paste0(tile_group, " (", round(pelvic_pain_pv, 2), ")")
   )
 
-# # Create a named vector for labels
-# label_lookup <- 
-#   setNames(pred_pelvic_q$tile_group_label, pred_pelvic_q$tile_group)
-# 
-# ggplot(
-#   pred_pelvic_q, 
-#   aes(
-#     yrs_since_baseline, pred_resp, group = tile_group, 
-#     color = tile_group, fill = tile_group
-#   )
-# ) +
-#   geom_hline(yintercept = 0, linetype = 2, alpha = 1/2) +
-#   geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3) +
-#   geom_line() +
-#   coord_cartesian(ylim = c(-8, 8)) +
-#   labs(
-#     x = "Years Since Baseline Visit", 
-#     y = "Predicted MMH (PC1)", 
-#     color = "Pelvic Pain\nUpper Quartile Boundary",
-#     fill = "Pelvic Pain\nUpper Quartile Boundary"
-#   ) +
-#   scale_color_manual(values = colors, labels = label_lookup) +
-#   scale_fill_manual(values = colors, labels = label_lookup) +
-#   scale_y_continuous(breaks = seq(-8, 8, 2)) +
-#   theme_classic() +
-#   theme(
-#     legend.position = "inside",
-#     legend.position.inside = c(.2, .2),
-#     legend.background = element_rect(color = "black"),
-#     legend.title = element_text(hjust = .5)
-#   )
+# constructs labels to group
+label_lookup <- setNames(pdata$tile_group_label, pdata$tile_group)
+
+# plot
+pred_q_plot <- 
+  ggplot(
+  pdata,
+  aes(
+    yrs_since_baseline, pred_resp, group = tile_group,
+    color = tile_group, fill = tile_group
+  )
+) +
+  geom_hline(yintercept = 0, linetype = 2, alpha = 1/2) +
+  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3) +
+  geom_line() +
+  coord_cartesian(ylim = c(-8, 8)) +
+  labs(
+    x = "Years Since Baseline Visit",
+    y = "Predicted MMH (PC1)",
+    color = "Pelvic Pain\nUpper Quartile Boundary",
+    fill = "Pelvic Pain\nUpper Quartile Boundary"
+  ) +
+  scale_color_manual(values = colors, labels = label_lookup) +
+  scale_fill_manual(values = colors, labels = label_lookup) +
+  scale_y_continuous(breaks = seq(-8, 8, 2)) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text_minor,
+    axis.title.x = element_text_major,
+    axis.text.y = element_text_minor,
+    axis.title.y = element_text_major,
+    # LEGEND ========================================
+    legend.position = "inside",
+    legend.position.inside = c(.2, .2),
+    legend.background = element_rect(color = "black"),
+    legend.text = element_text_minor,
+    legend.title = element_text(
+      hjust = .5, size = CONFIG$major_font_size, family = CONFIG$font_family, 
+      color = CONFIG$font_color
+    )
+  )
+
 
 # ASSEMBLING PLOT ----
 
