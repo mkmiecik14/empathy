@@ -22,7 +22,8 @@ CONFIG <- list(
   minor_font_size = 6,
   font_family = "Arial",
   font_color = "black",
-  lw = 0.75 # line width
+  lw = 0.75, # line width
+  lks = 0.3 # legend.key.size unit in cm
 )
 
 # plot elements for standardization
@@ -162,7 +163,7 @@ pdata_ss <-
     visit = factor(
       visit, 
       levels = c(0:2), 
-      labels = c("Baseline", "Post-Menarche Visit 1", "Post-Menarche Visit 2")
+      labels = c("Baseline", "PM Visit 1", "PM Visit 2")
       )
     )
 pdata_sum <- 
@@ -179,29 +180,42 @@ pdata_sum <-
     visit = factor(
       visit, 
       levels = c(0:2), 
-      labels = c("Baseline", "Post-Menarche Visit 1", "Post-Menarche Visit 2")
+      labels = c("Baseline", "PM Visit 1", "PM Visit 2")
     )
     )
 
-# CREATING COLOR PALLETE
+# creating color palette
 my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
 colors <- lighten(my_color, amount = seq(0.6, 0, length.out = 3))
-barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
+# uncomment to see colors:
+# barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
 names(colors) <- c("low", "middle", "high")
 
+# observed quartiles plot
 label_lookup <- setNames(pdata_sum$value_label, pdata_sum$value)
-ggplot(
-  pdata_sum,
-  aes(visit, m, group = value, color = value, fill = value)
-  ) +
-  geom_point(data = pdata_ss, aes(y = PC1), shape = 16, alpha = 1/3, position = pj) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_point(position = pd) +
-  geom_errorbar(aes(ymin = ll, ymax = ul), width = .2, position = pd) +
-  geom_line(position = pd) +
+obs_q_plot <- 
+  ggplot(
+    pdata_sum,
+    aes(visit, m, group = value, color = value, fill = value)
+    ) +
+  geom_hline(yintercept = 0, linetype = 2, alpha = 1/2, linewidth = .5) +
+  geom_point(
+    data = pdata_ss, 
+    aes(y = PC1), 
+    shape = 16, alpha = 1/3, position = pj,
+    size = .5
+    ) +
+  geom_point(position = pd, size = 1) +
+  geom_errorbar(
+    aes(ymin = ll, ymax = ul), 
+    width = .2, position = pd, linewidth = .5
+    ) +
+  geom_line(position = pd, linewidth = .5) +
   labs(
-    x = "Visit", y = "Observed MMH PC1", fill = "Pelvic Pain Quartile Group",
-    color = "Pelvic Pain Quartile Group"
+    x = "Visit", 
+    y = "Observed MMH (PC1 Factor Score)", 
+    fill = "Pelvic Pain\nQuartile Group",
+    color = "Pelvic Pain\nQuartile Group"
     ) +
   coord_cartesian(ylim = c(-8, 8)) +
   scale_y_continuous(breaks = seq(-8, 8, 2)) +
@@ -223,12 +237,9 @@ ggplot(
       hjust = .5, size = CONFIG$major_font_size, family = CONFIG$font_family, 
       color = CONFIG$font_color
       ),
-    legend.text = element_text_minor
+    legend.text = element_text_minor,
+    legend.key.size = unit(CONFIG$lks, "cm")
   )
-# FINISHED THIS ONE; NOW DO THE PREDICTED!
-
-
-
 
 # PREDICTED QUARTILE BOUNDARIES
 
@@ -257,21 +268,21 @@ label_lookup <- setNames(pdata$tile_group_label, pdata$tile_group)
 # plot
 pred_q_plot <- 
   ggplot(
-  pdata,
+  pdata %>% filter(tile_group != "50%"),
   aes(
     yrs_since_baseline, pred_resp, group = tile_group,
     color = tile_group, fill = tile_group
   )
 ) +
-  geom_hline(yintercept = 0, linetype = 2, alpha = 1/2) +
+  geom_hline(yintercept = 0, linetype = 2, alpha = 1/2, linewidth = .5) +
   geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3) +
   geom_line() +
   coord_cartesian(ylim = c(-8, 8)) +
   labs(
     x = "Years Since Baseline Visit",
-    y = "Predicted MMH (PC1)",
-    color = "Pelvic Pain\nUpper Quartile Boundary",
-    fill = "Pelvic Pain\nUpper Quartile Boundary"
+    y = "Predicted MMH (PC1 Factor Score)",
+    color = "Pelvic Pain\nQuartile Upper Boundary",
+    fill = "Pelvic Pain\nQuartile Upper Boundary"
   ) +
   scale_color_manual(values = colors, labels = label_lookup) +
   scale_fill_manual(values = colors, labels = label_lookup) +
@@ -283,18 +294,20 @@ pred_q_plot <-
     axis.text.y = element_text_minor,
     axis.title.y = element_text_major,
     # LEGEND ========================================
-    legend.position = "inside",
-    legend.position.inside = c(.2, .2),
+    legend.position = "bottom",
     legend.background = element_rect(color = "black"),
+    legend.box = "vertical",
+    legend.box.just = "center",
+    legend.title.position = "top",
     legend.text = element_text_minor,
     legend.title = element_text(
       hjust = .5, size = CONFIG$major_font_size, family = CONFIG$font_family, 
       color = CONFIG$font_color
-    )
+    ),
+    legend.key.size = unit(CONFIG$lks, "cm")
   )
 
-
-# ASSEMBLING PLOT ----
+# ASSEMBLING GAMM RESULTS PLOT ----
 
 # plot list
 plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp)
@@ -318,6 +331,39 @@ message("==================================")
 message("")
 f <- file.path("output", "manuscript", "long-mmh-plot")
 save_figure(f = f, p = fig, w = 6.5, h = 3, units = "in", dpi = 300, both = TRUE)
+
+# ASSEMBLING QUARTILE PLOT ----
+
+message("==================================")
+message("=== SAVING OUT QUARTILE PLOT =====")
+message("==================================")
+message("")
+
+# assmebles
+plots <- list(obs_q_plot, pred_q_plot)
+fig <- 
+  wrap_plots(plots, ncol = 2) + 
+  plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
+  theme(
+    plot.tag = element_text(
+      size = CONFIG$major_font_size, 
+      face = "bold", 
+      family = CONFIG$font_family
+    )
+  )
+
+# saves
+f <- file.path("output", "manuscript", "quartile-plot")
+save_figure(f = f, p = fig, w = 5, h = 3, units = "in", dpi = 300, both = TRUE)
+
+# Things to change:
+#1 ) thickness of legend box
+#2) change to minor font for legend title
+#3) colors to more distinctive (see other colors on mononokemedium?)
+# widen plot slightly and see about golden ratio
+# colors are not matched between figure
+
+
 
 
 # TABLE OF GAMM RESULTS ----
