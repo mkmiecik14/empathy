@@ -9,7 +9,7 @@ message("")
 
 # libraries ----
 library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
-library(grid); library(colorspace)
+library(grid); library(colorspace); library(ggsci); library(scales)
 
 # Functions ----
 source("src/fns/save_figure.r")
@@ -23,7 +23,8 @@ CONFIG <- list(
   font_family = "Arial",
   font_color = "black",
   lw = 0.75, # line width
-  lks = 0.3 # legend.key.size unit in cm
+  lks = 0.3, # legend.key.size unit in cm
+  legend_lw = .25
 )
 
 # plot elements for standardization
@@ -151,6 +152,31 @@ pred_mmh_pp <-
     axis.title.y = element_text_major
   )
 
+# ASSEMBLING GAMM RESULTS PLOT
+
+# plot list
+plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp)
+
+# putting these together
+fig <- 
+  wrap_plots(plots, ncol = 3) + 
+  plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
+  theme(
+    plot.tag = element_text(
+      size = CONFIG$major_font_size, 
+      face = "bold", 
+      family = CONFIG$font_family
+    )
+  )
+
+# save out here
+message("==================================")
+message("=== SAVING OUT LONG MMH FIGURE ===")
+message("==================================")
+message("")
+f <- file.path("output", "manuscript", "long-mmh-plot")
+save_figure(f = f, p = fig, w = 6.5, h = 3, units = "in", dpi = 300, both = TRUE)
+
 # PLOTTING QUARTILE PLOTS ---
 
 # Observed quartiles for pelvic pain
@@ -185,10 +211,11 @@ pdata_sum <-
     )
 
 # creating color palette
-my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
-colors <- lighten(my_color, amount = seq(0.6, 0, length.out = 3))
+#my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
+#colors <- lighten(my_color, amount = seq(0.6, 0, length.out = 3))
 # uncomment to see colors:
 # barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
+colors <- pal_jco("default")(3)
 names(colors) <- c("low", "middle", "high")
 
 # observed quartiles plot
@@ -199,18 +226,18 @@ obs_q_plot <-
     aes(visit, m, group = value, color = value, fill = value)
     ) +
   geom_hline(yintercept = 0, linetype = 2, alpha = 1/2, linewidth = .5) +
-  geom_point(
-    data = pdata_ss, 
-    aes(y = PC1), 
-    shape = 16, alpha = 1/3, position = pj,
-    size = .5
-    ) +
-  geom_point(position = pd, size = 1) +
+  # geom_point(
+  #   data = pdata_ss, 
+  #   aes(y = PC1), 
+  #   shape = 16, alpha = 1/3, position = pj,
+  #   size = .75
+  #   ) +
+  geom_point(position = pd) +
   geom_errorbar(
     aes(ymin = ll, ymax = ul), 
-    width = .2, position = pd, linewidth = .5
+    width = .2, position = pd, linewidth = .5, linewidth = CONFIG$lw
     ) +
-  geom_line(position = pd, linewidth = .5) +
+  geom_line(position = pd, linewidth = .5, linewidth = CONFIG$lw) +
   labs(
     x = "Visit", 
     y = "Observed MMH (PC1 Factor Score)", 
@@ -229,12 +256,12 @@ obs_q_plot <-
     axis.title.y = element_text_major,
     # LEGEND =========================
     legend.position = "bottom",
-    legend.background = element_rect(color = "black"),
+    legend.background = element_rect(color = "black", linewidth = CONFIG$legend_lw),
     legend.box = "vertical",
     legend.box.just = "center",
     legend.title.position = "top",
     legend.title = element_text(
-      hjust = .5, size = CONFIG$major_font_size, family = CONFIG$font_family, 
+      hjust = .5, size = CONFIG$minor_font_size, family = CONFIG$font_family, 
       color = CONFIG$font_color
       ),
     legend.text = element_text_minor,
@@ -247,7 +274,9 @@ obs_q_plot <-
 # these are wrong for some reason...go back to original script and fix
 q_vec <- as_vector(df$quartile_preds$pelvic_pain$pelvic_pain_pv) %>% unique()
 names(q_vec) <- names(df$quartile_boundaries$pelvic_pain[-1]) # drops 0% as it is the same as %25
-colors <- lighten(my_color, amount = seq(0.8, 0, length.out = length(q_vec)))
+#q_vec <- q_vec[names(q_vec) %in% c("25%", "75%", "100%")] # drops 50% to match other plot above
+# colors <- lighten(my_color, amount = seq(0.8, 0, length.out = length(q_vec)))
+#names(colors) <- names(q_vec)
 
 # plot data
 pdata <- 
@@ -260,10 +289,12 @@ pdata <-
       include.lowest = TRUE
     ),
     tile_group_label = paste0(tile_group, " (", round(pelvic_pain_pv, 2), ")")
-  )
+  ) %>%
+  filter(tile_group != "50%") # drops 50% to match plot above
 
 # constructs labels to group
 label_lookup <- setNames(pdata$tile_group_label, pdata$tile_group)
+names(colors) <- unique(pdata$tile_group)
 
 # plot
 pred_q_plot <- 
@@ -275,8 +306,8 @@ pred_q_plot <-
   )
 ) +
   geom_hline(yintercept = 0, linetype = 2, alpha = 1/2, linewidth = .5) +
-  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3) +
-  geom_line() +
+  geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3, color = NA) +
+  geom_line(linewidth = CONFIG$lw) +
   coord_cartesian(ylim = c(-8, 8)) +
   labs(
     x = "Years Since Baseline Visit",
@@ -295,49 +326,19 @@ pred_q_plot <-
     axis.title.y = element_text_major,
     # LEGEND ========================================
     legend.position = "bottom",
-    legend.background = element_rect(color = "black"),
+    legend.background = element_rect(color = "black", linewidth = CONFIG$legend_lw),
     legend.box = "vertical",
     legend.box.just = "center",
     legend.title.position = "top",
     legend.text = element_text_minor,
     legend.title = element_text(
-      hjust = .5, size = CONFIG$major_font_size, family = CONFIG$font_family, 
+      hjust = .5, size = CONFIG$minor_font_size, family = CONFIG$font_family, 
       color = CONFIG$font_color
     ),
     legend.key.size = unit(CONFIG$lks, "cm")
   )
 
-# ASSEMBLING GAMM RESULTS PLOT ----
 
-# plot list
-plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp)
-
-# putting these together
-fig <- 
-  wrap_plots(plots, ncol = 3) + 
-  plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
-  theme(
-    plot.tag = element_text(
-      size = CONFIG$major_font_size, 
-      face = "bold", 
-      family = CONFIG$font_family
-      )
-    )
-
-# save out here
-message("==================================")
-message("=== SAVING OUT LONG MMH FIGURE ===")
-message("==================================")
-message("")
-f <- file.path("output", "manuscript", "long-mmh-plot")
-save_figure(f = f, p = fig, w = 6.5, h = 3, units = "in", dpi = 300, both = TRUE)
-
-# ASSEMBLING QUARTILE PLOT ----
-
-message("==================================")
-message("=== SAVING OUT QUARTILE PLOT =====")
-message("==================================")
-message("")
 
 # assmebles
 plots <- list(obs_q_plot, pred_q_plot)
@@ -352,18 +353,14 @@ fig <-
     )
   )
 
+message("==================================")
+message("=== SAVING OUT QUARTILE PLOT =====")
+message("==================================")
+message("")
+
 # saves
 f <- file.path("output", "manuscript", "quartile-plot")
-save_figure(f = f, p = fig, w = 5, h = 3, units = "in", dpi = 300, both = TRUE)
-
-# Things to change:
-#1 ) thickness of legend box
-#2) change to minor font for legend title
-#3) colors to more distinctive (see other colors on mononokemedium?)
-# widen plot slightly and see about golden ratio
-# colors are not matched between figure
-
-
+save_figure(f = f, p = fig, w = 6.5, h = 4, units = "in", dpi = 300, both = TRUE)
 
 
 # TABLE OF GAMM RESULTS ----
