@@ -215,8 +215,10 @@ pdata_sum <-
 #colors <- lighten(my_color, amount = seq(0.6, 0, length.out = 3))
 # uncomment to see colors:
 # barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
-colors <- pal_jco("default")(3)
+colors <- pal_jco("default")(3)[c(1, 3, 2)]
 names(colors) <- c("low", "middle", "high")
+y_scale <- scale_y_continuous(breaks = seq(-5, 5, 1)) # consistently set y-axis
+y_coord <- coord_cartesian(ylim = c(-5, 5))
 
 # observed quartiles plot
 label_lookup <- setNames(pdata_sum$value_label, pdata_sum$value)
@@ -244,8 +246,8 @@ obs_q_plot <-
     fill = "Pelvic Pain\nQuartile Group",
     color = "Pelvic Pain\nQuartile Group"
     ) +
-  coord_cartesian(ylim = c(-8, 8)) +
-  scale_y_continuous(breaks = seq(-8, 8, 2)) +
+  y_scale +
+  y_coord +
   scale_color_manual(values = colors, labels = label_lookup) +
   scale_fill_manual(values = colors, labels = label_lookup) +
   theme_classic() +
@@ -262,7 +264,7 @@ obs_q_plot <-
     legend.title.position = "top",
     legend.title = element_text(
       hjust = .5, size = CONFIG$minor_font_size, family = CONFIG$font_family, 
-      color = CONFIG$font_color
+      color = CONFIG$font_color, face = "bold"
       ),
     legend.text = element_text_minor,
     legend.key.size = unit(CONFIG$lks, "cm")
@@ -308,7 +310,6 @@ pred_q_plot <-
   geom_hline(yintercept = 0, linetype = 2, alpha = 1/2, linewidth = .5) +
   geom_ribbon(aes(ymin = lwr_resp, ymax = upr_resp), alpha = 1/3, color = NA) +
   geom_line(linewidth = CONFIG$lw) +
-  coord_cartesian(ylim = c(-8, 8)) +
   labs(
     x = "Years Since Baseline Visit",
     y = "Predicted MMH (PC1 Factor Score)",
@@ -317,7 +318,8 @@ pred_q_plot <-
   ) +
   scale_color_manual(values = colors, labels = label_lookup) +
   scale_fill_manual(values = colors, labels = label_lookup) +
-  scale_y_continuous(breaks = seq(-8, 8, 2)) +
+  y_scale +
+  y_coord +
   theme_classic() +
   theme(
     axis.text.x = element_text_minor,
@@ -333,7 +335,7 @@ pred_q_plot <-
     legend.text = element_text_minor,
     legend.title = element_text(
       hjust = .5, size = CONFIG$minor_font_size, family = CONFIG$font_family, 
-      color = CONFIG$font_color
+      color = CONFIG$font_color, face = "bold"
     ),
     legend.key.size = unit(CONFIG$lks, "cm")
   )
