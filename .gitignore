@@ -41,8 +41,14 @@ vignettes/*.pdf
 # R project
 *.Rproj
 
-# Mac stuff
+# Files
 .DS_Store
-
-# ignore PDFs
 *.pdf
+CLAUDE.md
+*.graffle
+
+# Directories
+output/
+data/
+doc/
+figures/
