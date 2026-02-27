@@ -8,8 +8,8 @@
 library(tidyverse)
 
 # functions ----
-source("src/fns/extract_ppt.R") # for processing regular ppt files
-source("src/fns/extract_ppt_log.R") # for processing log files
+source("fns/extract_ppt.R") # for processing regular ppt files
+source("fns/extract_ppt_log.R") # for processing log files
 
 # proc ----
 

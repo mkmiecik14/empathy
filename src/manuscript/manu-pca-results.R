@@ -6,7 +6,7 @@
 library(tidyverse); library(RColorBrewer); library(patchwork); library(ggrepel)
 
 # functions ----
-source("src/fns/save_figure.R") # custom function
+source("fns/save_figure.R") # custom function
 
 # helper function to create labels for PC axes
 make_label <- function(i, name) {

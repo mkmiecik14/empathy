@@ -35,7 +35,7 @@ library(knitr)
 library(kableExtra)
 
 # functions ----
-source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
 
 # gets filename and loads data automatically by version info in params
 f <- glue("../../output/analysis-long-supp-proj-{params$version}.rds")

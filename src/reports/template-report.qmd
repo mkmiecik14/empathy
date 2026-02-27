@@ -24,7 +24,7 @@ params:
 # LIBRARIES HERE
 
 # functions ----
-source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
 #d <- read_rds(here::here("output", "NAME-OF-DATA-HERE.rds"))
 
 # gets filename and loads data automatically by version info in params

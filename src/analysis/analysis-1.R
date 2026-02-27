@@ -7,8 +7,8 @@
 # function of increasing brightness intensity
 
 # Prepares workspace
-source("r-prep.R")
-source("topo_tools.R") # gets functions for plotting topos
+source("fns/r-prep.R")
+source("fns/topo_tools.R") # gets functions for plotting topos
 
 # Loads data
 load("../output/psd-res.rda") # spectral data

@@ -25,7 +25,7 @@ params:
 library(tidyverse); library(glue)
 
 # functions ----
-source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
 #d <- read_rds(here::here("output", "analysis-long-mmh-mod-comp-v1.rds"))
 
 # gets filename and loads data automatically by version info in params

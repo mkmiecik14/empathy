@@ -5,7 +5,7 @@
 # Depends on analysis-pca-3.R
 
 # grabs versioning info ----
-source("src/fns/versioning_proc.R")
+source("fns/versioning_proc.R")
 vinfo <- 
   versioning_proc(
     testing = FALSE, 

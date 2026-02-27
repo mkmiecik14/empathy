@@ -6,7 +6,7 @@
 # smooth terms
 
 # grabs versioning info ----
-source("src/fns/versioning_proc.R")
+source("fns/versioning_proc.R")
 vinfo <- 
   versioning_proc(
     testing = FALSE, 
@@ -18,8 +18,8 @@ library(tidyverse); library(patchwork); library(mgcv)
 RDGY <- RColorBrewer::brewer.pal(11, "RdGy")
 
 # custom functions ----
-source("src/fns/broom_gam.R")
-source("src/fns/predict_link.R")
+source("fns/broom_gam.R")
+source("fns/predict_link.R")
 
 # data ----
 f <- file.path("output", "pca-3-fi-supp-proj-mod-data.rds")

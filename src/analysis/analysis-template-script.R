@@ -5,7 +5,7 @@
 # Purpose: [ description here ]
 
 # grabs versioning info ----
-source("src/fns/versioning_proc.R")
+source("fns/versioning_proc.R")
 vinfo <- versioning_proc(testing = FALSE, this_script = "[script-name-here]")
 
 # write analysis here

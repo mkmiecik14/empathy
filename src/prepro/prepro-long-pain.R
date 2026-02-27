@@ -8,7 +8,7 @@
 library(tidyverse); library(glue); library(here)
 
 # grabs versioning info ----
-source(file.path(here(), "src", "fns", "versioning_proc.R"))
+source(file.path(here(), "fns", "versioning_proc.R"))
 vinfo <- versioning_proc(testing = FALSE, this_script = "prepro-long-pain")
 
 # data ----

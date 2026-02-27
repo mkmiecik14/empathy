@@ -6,8 +6,8 @@
 #* and visualizes it to check the quality of the data
 
 # Prepares workspace
-source("r-prep.R")
-source("topo_tools.R") # tools for plotting EEG topographies
+source("fns/r-prep.R")
+source("fns/topo_tools.R") # tools for plotting EEG topographies
 
 # Loads data
 load("../output/psd-res.rda") # spectral data

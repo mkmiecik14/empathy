@@ -24,7 +24,7 @@ params:
 library(tidyverse); library(glue); library(kableExtra); library(here)
 
 # functions ----
-source("../fns/kable_tools.R") # source("src/fns/kable_tools.R")
+source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
 #d <- read_rds(here::here("output", "analysis-long-pain-v1.rds"))
 
 # gets filename and loads data

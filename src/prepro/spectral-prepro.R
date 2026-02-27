@@ -2,7 +2,7 @@
 # Matt Kmiecik
 # Started 24 FEB 2020
 
-source("r-prep.R") # preps R workspace 
+source("fns/r-prep.R") # preps R workspace
 
 # Loading various data ----
 

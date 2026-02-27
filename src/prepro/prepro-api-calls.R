@@ -5,7 +5,7 @@
 # Purpose: preprocess and prepare the data coming out of the API calls
 
 # Prepares workspace
-source("r-prep.R")
+source("fns/r-prep.R")
 
 # Loads data
 load("../output/ss-masterlist.rda") # masterlist

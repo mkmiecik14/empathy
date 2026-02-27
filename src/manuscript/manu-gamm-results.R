@@ -12,7 +12,7 @@ library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
 library(grid); library(colorspace); library(ggsci); library(scales)
 
 # Functions ----
-source("src/fns/save_figure.R")
+source("fns/save_figure.R")
 pts_to_mm <- function(pts) pts / 2.845
 
 # CONFIGURATION ----

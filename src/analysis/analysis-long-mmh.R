@@ -12,11 +12,11 @@
 library(tidyverse)
 
 # custom functions ----
-source("src/fns/predict_link.R")
-source("src/fns/broom_gam.R")
+source("fns/predict_link.R")
+source("fns/broom_gam.R")
 
 # grabs versioning info ----
-source("src/fns/versioning_proc.R")
+source("fns/versioning_proc.R")
 vinfo <- versioning_proc(testing = FALSE, this_script = "analysis-long-mmh")
 
 # data ----

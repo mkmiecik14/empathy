@@ -6,7 +6,7 @@
 # change over time
 
 # grabs versioning info ----
-source("src/fns/versioning_proc.R")
+source("fns/versioning_proc.R")
 vinfo <- 
   versioning_proc(testing = FALSE, this_script = "analysis-long-supp-proj")
 
@@ -14,8 +14,8 @@ vinfo <-
 library(tidyverse); library(TInPosition); library(ggrepel); library(patchwork)
 
 # custom functions ----
-source("src/fns/broom_gam.R")
-source("src/fns/predict_link.R")
+source("fns/broom_gam.R")
+source("fns/predict_link.R")
 
 # data ----
 

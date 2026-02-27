@@ -6,7 +6,7 @@
 # redcap record numbers
 
 # Prepares workspace
-source("r-prep.R")
+source("fns/r-prep.R")
 
 # Loads in excel document
 ss_masterlist <- 

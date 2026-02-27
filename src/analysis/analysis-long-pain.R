@@ -10,11 +10,11 @@ library(lme4); library(lmerTest)
 library(mgcv)
 
 # custom functions ----
-source("src/fns/broom_gam.R") # functions for extracting GAMs
-source("src/fns/predict_link.R") # function for predicting on link function
+source("fns/broom_gam.R") # functions for extracting GAMs
+source("fns/predict_link.R") # function for predicting on link function
 
 # grabs versioning info ----
-source("src/fns/versioning_proc.R")
+source("fns/versioning_proc.R")
 vinfo <- versioning_proc(testing = FALSE, this_script = "analysis-long-pain")
 
 # data ----
