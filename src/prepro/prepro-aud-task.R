@@ -61,7 +61,8 @@ dd2 <-
 # Therefore, these numbers will be replaced with the singular number version:
   mutate(rating = ifelse(rating %in% doubles, rating %% 10, rating)) %>%
   # combines with list of all participants that completed task (see above)
-  left_join(ss_list, ., by = c("task", "ss", "session", "date"))
+  left_join(ss_list, ., by = c("task", "ss", "session", "date")) %>%
+  mutate(date = mdy(date))
 
 # Test done here to prove that ratings > 20 are fixed
 # dd %>% count(rating) %>% View()
