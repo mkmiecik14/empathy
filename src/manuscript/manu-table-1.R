@@ -2,10 +2,10 @@
 # Matt Kmiecik
 # Purpose: generate Table 1 of the manuscript
 
-# libraries ----
+# LIBRARY ======================================================================
 library(tidyverse); library(rlang); library(flextable)
 
-# helper functions ----
+# HELPER FUNCTIONS =============================================================
 
 # helper function for demographic percentages
 get_demo_sum <- function(
@@ -109,7 +109,7 @@ prep_table1 <- function(data, col = race, colname = "Race", type = "cat"){
   return(res)
 }
 
-# data ----
+# DATA =========================================================================
 
 # LONGITUDINAL MMH MODELING
 f <- file.path("output", "analysis", "analysis-long-supp-proj-simplified.rds")
@@ -291,7 +291,7 @@ pca_age <- get_demo_sum(pca_ss, age_data, age, "cont")
 long_age <- get_demo_sum(long_ss, age_data, age, "cont")
 #lapply(list(pca_age, long_age), attributes) # to see missing
 
-# assembles PCA table 1
+# ASSMEMBLING PCA TABLE 1 ======================================================
 pca_table_1 <- list(
   prep_table1(pca_age, col = variable, colname = "Age (years)", type = "cont"),
   prep_table1(pca_race),
@@ -307,7 +307,7 @@ pca_table_1 <- list(
 ) %>%
   list_rbind(.)
 
-# assembles longitudinal modeling table 1
+# ASSEMBLING LONGITUDINAL TABLE 1 ==============================================
 long_table_1 <- list(
   prep_table1(long_age, col = variable, colname = "Age (years)", type = "cont"),
   prep_table1(long_race),
@@ -322,7 +322,7 @@ long_table_1 <- list(
 ) %>%
   list_rbind(.)
 
-# assembles and puts finishing touches on Table 1
+# PUTTING EVERYTHING TOGETHER AND FINISHING TOUCHES ============================
 table_1 <-
   full_join(pca_table_1, long_table_1, by = c("Category", "Measure")) %>%
   mutate(
@@ -343,7 +343,7 @@ table_1 <-
     Measure = if_else(is.na(Measure), "N/A", Measure)
     )
 
-# Write a flextable here
+# FLEXTABLE ====================================================================
 ft_table_1 <-
   flextable(table_1) %>%
   set_header_labels(
@@ -360,9 +360,12 @@ ft_table_1 <-
   align(align = "left", part = "all") %>%
   autofit()
 
-# writes out ----
+# WRITE OUT ====================================================================
+
+# table 1 as CSV
 f <- file.path("output", "manuscript", "manu-table-1.csv")
 write_csv(table_1, file = f)
 
+# table 1 flextable
 f <- file.path("output", "manuscript", "manu-table-1.docx")
 save_as_docx(ft_table_1, path = f)
