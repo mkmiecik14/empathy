@@ -21,9 +21,11 @@ aud_sum <- readRDS(file.path("output", "prepro", "aud-task-sum-data.rds"))
 
 # combines all task data
 task_data <-
-  full_join(vis_sum, aud_sum, by = c("ss", "session")) %>%
-  mutate(date = coalesce(date.x, date.y)) %>%
-  select(-date.x, -date.y) %>%
+  full_join(
+    vis_sum %>% select(-date), # removes dates as they are not reliable
+    aud_sum %>% select(-date), 
+    by = c("ss", "session")
+  ) %>% 
   arrange(ss, session) %>%
   # adds redcap data to help with join
   mutate(
@@ -33,7 +35,7 @@ task_data <-
       session == 12 ~ "visit2_child_arm_1",
       .default = "missing"
     ),
-    .after = date
+    .after = session
     )
 
 ## PPT data

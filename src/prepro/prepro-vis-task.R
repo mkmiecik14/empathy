@@ -83,23 +83,26 @@ dd2 <-
 # Therefore, this number will be replaced with NA
   mutate(rating = ifelse(ss == 252 & rating == 87, NA, rating))
 
-# Fix session numbers, as some of these were not entered consistently
+# Apply explicit corrections verified by research staff (from queries-solved.xlsx)
 # 10 = baseline, 11 = PV1, 12 = PV2
-ss_issues <- dd2 %>% filter(!session %in% c(10:12)) %>% pull(ss)
-session_fix <-
-  dd2 %>%
-  filter(ss %in% ss_issues) %>%
-  select(ss, session, date) %>%
-  distinct() %>%
-  arrange(ss, date) %>%
-  mutate(session_correct = 9L + row_number(), .by = ss) %>%
-  select(ss, session, session_correct)
+corrections <-
+  readxl::read_excel("data/queries-solved.xlsx", sheet = "visual-task-query-2") %>%
+  filter(!is.na(new_ss) | !is.na(new_session)) %>%
+  filter(new_ss != ss | new_session != session) %>%
+  mutate(date = as.Date(date)) %>%
+  select(ss, session, date, new_ss, new_session)
 
 dd2 <-
   dd2 %>%
-  left_join(session_fix, by = c("ss", "session")) %>%
-  mutate(session = coalesce(session_correct, session)) %>% 
-  select(-session_correct)
+  left_join(corrections, by = c("ss", "session", "date")) %>%
+  mutate(
+    ss      = coalesce(new_ss, ss),
+    session = coalesce(new_session, session)
+  ) %>%
+  select(-new_ss, -new_session)
+
+# When a session was run twice, keep only the later date
+dd2 <- dd2 %>% filter(date == max(date), .by = c(ss, session))
 
 # # query 1: ratings that are not doubles outside of usual values
 # dd_q1 <- dd2 %>% filter(!between(rating, 0, 20))
