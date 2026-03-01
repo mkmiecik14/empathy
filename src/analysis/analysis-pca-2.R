@@ -23,7 +23,7 @@ library(tidyverse); library(TInPosition); library(scales)
 # }
 
 # data ----
-f <- file.path("output", "pca-data.rds")
+f <- file.path("output", "prepro", "pca-data.rds")
 dd <- read_rds(file = f)
 
 # averages knee_CPM and shoulder_CPM

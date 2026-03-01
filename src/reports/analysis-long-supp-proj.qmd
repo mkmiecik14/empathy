@@ -17,11 +17,7 @@ execute:
   warning: false
   error: false
   working-directory: project
-params:
-  version: v1
 ---
-
-*Analysis version: `r params$version`*
 
 *Generated on: `r Sys.Date()`*
 
@@ -29,17 +25,15 @@ params:
 # libraries ----
 library(tidyverse)
 library(patchwork)
-library(glue)
 library(readr)
 library(knitr)
 library(kableExtra)
 
 # functions ----
-source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
+source("fns/kable_tools.R")
 
-# gets filename and loads data automatically by version info in params
-f <- glue("../../output/analysis-long-supp-proj-{params$version}.rds")
-# f <- glue("output/analysis-long-supp-proj-{params$version}.rds")
+# loads data
+f <- "output/analysis-long-supp-proj.rds"
 results <- read_rds(file = f)
 
 # extract components for easier access

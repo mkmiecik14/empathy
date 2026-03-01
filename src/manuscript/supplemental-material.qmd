@@ -27,7 +27,7 @@ library(tidyverse)
 #| fig-cap: "Scree plot indicating variance explained in each principal component and significance from permutations testing."
 #| out-width: "100%"
 
-knitr::include_graphics("../../output/manuscript/scree-plot.png")
+knitr::include_graphics("output/manuscript/scree-plot.png")
 ```
 
 ## Tables

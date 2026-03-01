@@ -27,7 +27,7 @@ This document provides plots of raw and summary data for the visual task where p
 library(tidyverse); library(RColorBrewer)
 
 # data ----
-dd <- readRDS(file = "../output/vis-task-data.rds")
+dd <- readRDS(file = "../../output/prepro/vis-task-data.rds")
 # dd <- readRDS(file = "output/vis-task-data.rds") # uncomment when working in doc
 
 # remove after these data have been cleaned

@@ -36,5 +36,5 @@ hsc <-
 
 # writes out ----
 hsc[["n"]] <- NULL # removes the n column after checking
-f <- file.path("output", "hsc-data.rds")
+f <- file.path("output", "prepro", "hsc-data.rds")
 write_rds(hsc, file = f)

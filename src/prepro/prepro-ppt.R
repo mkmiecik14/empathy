@@ -232,10 +232,10 @@ ppt_data_all_2 <-
 # saves out PPT data ----
 
 ## RDS
-f <- file.path("output", "ppt-data.rds")
+f <- file.path("output", "prepro", "ppt-data.rds")
 saveRDS(ppt_data_all_2, file = f)
 
 ## CSV
-f <- file.path("output", "ppt-data.csv")
+f <- file.path("output", "prepro", "ppt-data.csv")
 write_csv(ppt_data_all_2, file = f)
 

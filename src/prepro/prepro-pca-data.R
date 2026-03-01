@@ -9,7 +9,7 @@
 library(tidyverse)
 
 # data ----
-f <- file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 dd <- read_csv(f)
 
 # re-used variables ----
@@ -64,12 +64,12 @@ ppt_data <-
   )
 
 # after pain data ----
-f <- file.path("output", "afterpain-data.rds")
+f <- file.path("output", "prepro", "afterpain-data.rds")
 ap_data <- read_rds(file = f)
 
 
 # bladder experimental pain testing (IMPUTED DATA) ----
-f <- file.path("output", "bladder-task-imp-data.rds")
+f <- file.path("output", "prepro", "bladder-task-imp-data.rds")
 tmp <- read_rds(file = f) # reads in
 
 # converts bladder task pain data from long to wide format
@@ -92,7 +92,7 @@ bt_urgency_wide <-
 
 
 # cold pain data ----
-f <- file.path("output", "coldpain-data.rds")
+f <- file.path("output", "prepro", "coldpain-data.rds")
 cp_data <- read_rds(file = f) %>% select(-water_temp)
 
 ##################
@@ -102,18 +102,18 @@ cp_data <- read_rds(file = f) %>% select(-water_temp)
 ##################
 
 # Childhood Somatization Inventory ----
-f <- file.path("output", "cssi-data.rds")
+f <- file.path("output", "prepro", "cssi-data.rds")
 cssi_data <- read_rds(file = f)
 
 
 # Michigan Body Map ----
-f <- file.path("output", "tanner-body-gss-data.rds")
+f <- file.path("output", "prepro", "tanner-body-gss-data.rds")
 tmp <- readRDS(f)
 bodymap_gss_data <- tmp %>% select(-starts_with("tanner")) # removes tanner data
 
 
 # Highly sensitive child ----
-f <- file.path("output", "hsc-data.rds")
+f <- file.path("output", "prepro", "hsc-data.rds")
 hsc_data <- read_rds(file = f)
 
 #################
@@ -142,5 +142,5 @@ pca_data <-
 
 
 # writing out data ----
-f <- file.path("output", "pca-data.rds")
+f <- file.path("output", "prepro", "pca-data.rds")
 write_rds(pca_data, file = f)

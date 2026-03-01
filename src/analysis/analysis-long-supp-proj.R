@@ -5,11 +5,6 @@
 # Purpose: compute MMH longitudinally via supplementary projections and examine
 # change over time
 
-# grabs versioning info ----
-source("fns/versioning_proc.R")
-vinfo <- 
-  versioning_proc(testing = FALSE, this_script = "analysis-long-supp-proj")
-
 # libraries ----
 library(tidyverse); library(TInPosition); library(ggrepel); library(patchwork)
 
@@ -20,7 +15,7 @@ source("fns/predict_link.R")
 # data ----
 
 ## PCA data
-f <- file.path("output", "pca-data.rds")
+f <- file.path("output", "prepro", "pca-data.rds")
 dd <- read_rds(file = f)
 
 # these cols need to be flipped so that increased scores == more sensitive
@@ -278,8 +273,8 @@ library(mgcv); library(itsadug)
 fi_long$subject_id <- factor(fi_long$subject_id) # converts ss to factor
 
 ## brings in pain data and processes further
-pain_data <- 
-  read_rds("output/prepro-long-pain-v1.rds") %>%
+pain_data <-
+  read_rds("output/prepro/prepro-long-pain.rds") %>%
   mutate(
     visit = case_when(
       grepl("visit_1", redcap_event_name) ~ 1, 
@@ -676,4 +671,4 @@ results <-
   )
 
 # saving ----
-versioned_write_rds(data = results, vi = vinfo)
+write_rds(results, "output/analysis-long-supp-proj.rds")

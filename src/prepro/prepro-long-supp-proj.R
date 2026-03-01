@@ -9,7 +9,7 @@ library(tidyverse); library(TInPosition)
 # data ----
 
 ## PCA data
-f <- file.path("output", "pca-data.rds")
+f <- file.path("output", "prepro", "pca-data.rds")
 dd <- read_rds(file = f)
 
 # these cols need to be flipped so that increased scores == more sensitive
@@ -127,8 +127,8 @@ q_fi_time <-
   mutate(pca = "q")
 
 # brings in pain data and processes further
-pain_data <- 
-  read_rds("output/prepro-long-pain-v1.rds") %>%
+pain_data <-
+  read_rds("output/prepro/prepro-long-pain.rds") %>%
   mutate(
     visit = case_when(
       grepl("visit_1", redcap_event_name) ~ 1, 
@@ -158,8 +158,8 @@ pain_data_join <-
   )
 
 # TANNER STAGE ----
-tstage <- 
-  read_rds("output/tanner-body-gss-data.rds") %>%
+tstage <-
+  read_rds("output/prepro/tanner-body-gss-data.rds") %>%
   mutate(
     visit = case_when(
       grepl("baseline", redcap_event_name) ~ 0,
@@ -181,5 +181,5 @@ res <- list(
 )
 
 # saves out ----
-f <- file.path("output", "pca-3-fi-supp-proj-mod-data.rds")
+f <- file.path("output", "prepro", "pca-3-fi-supp-proj-mod-data.rds")
 write_rds(res, f)

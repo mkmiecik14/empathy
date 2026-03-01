@@ -15,26 +15,20 @@ execute:
   warning: false
   error: false
   working-directory: project
-params:
-  version: v1
 ---
 
 ```{r, setup, eval=TRUE}
 # libraries ----
-library(tidyverse); library(glue); library(kableExtra); library(here)
+library(tidyverse); library(kableExtra)
 
 # functions ----
-source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
-#d <- read_rds(here::here("output", "analysis-long-mmh-v1.rds"))
+source("fns/kable_tools.R")
 
-# gets filename and loads data
-f <- glue("../../output/analysis-long-mmh-{params$version}.rds")
-d <- read_rds(file = f)
+# loads data
+d <- read_rds("output/analysis-long-mmh.rds")
 ```
 
 ## Brief summary
-
-This is version: `r params$version` of this analysis.
 
 This analysis explored whether the first three principal components (PCs) were associated with the change over time of:
 

@@ -27,7 +27,7 @@ This document provides plots of raw and summary data for the auditory task where
 library(tidyverse); library(RColorBrewer)
 
 # data ----
-dd <- readRDS(file = "../../output/aud-task-data.rds")
+dd <- readRDS(file = "../../output/prepro/aud-task-data.rds")
 #dd <- readRDS(file = "output/aud-task-data.rds") # uncomment when working in doc
 
 # remove after these data have been cleaned

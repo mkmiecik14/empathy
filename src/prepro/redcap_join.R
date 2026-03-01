@@ -15,20 +15,13 @@ d <- "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI.csv"
 f <- file.path("data", d)
 rdcp <- read_csv(f)
 
-## visual/ auditory task data
-f <- list.files(path = "output", pattern = "sum-data.rds")
-tmp <- vector("list", length = length(f))
-names(tmp) <- gsub("-", "_", f)               # Replace hyphens
-names(tmp) <- gsub("\\.rds$", "", names(tmp)) # Remove .rds extension
-
-# reads in data
-for (i in 1:length(tmp)) {
-  tmp[[i]] <- readRDS(file = file.path("output", f[i]))
-}
+## visual/ auditory task summary data
+vis_sum <- readRDS(file.path("output", "prepro", "vis-task-sum-data.rds"))
+aud_sum <- readRDS(file.path("output", "prepro", "aud-task-sum-data.rds"))
 
 # combines all task data
-task_data <- 
-  reduce(tmp, full_join, by = c("ss", "session", "date")) %>% 
+task_data <-
+  full_join(vis_sum, aud_sum, by = c("ss", "session", "date")) %>%
   arrange(ss, session) %>%
   # adds redcap data to help with join
   mutate(
@@ -42,7 +35,7 @@ task_data <-
     )
 
 ## PPT data
-f <- file.path("output", "ppt-data.rds")
+f <- file.path("output", "prepro", "ppt-data.rds")
 ppt_data <- readRDS(file = f)
 
 # summarises PPT by subject
@@ -106,10 +99,10 @@ comb <-
 
 ## csv
 d2 <- gsub("\\.csv$", "", d) # removes .csv from filename
-f <- file.path("output", paste0(d2, "-joined", ".csv"))
+f <- file.path("output", "prepro", paste0(d2, "-joined", ".csv"))
 write_csv(comb, file = f)
 
 ## rds
-f <- file.path("output", "redcap-data-joined.rds")
+f <- file.path("output", "prepro", "redcap-data-joined.rds")
 saveRDS(comb, file = f)
 

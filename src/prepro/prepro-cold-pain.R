@@ -8,7 +8,7 @@
 library(tidyverse)
 
 # data ----
-f <- file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 dd <- read_csv(f)
 
 # proc ----
@@ -78,5 +78,5 @@ res <-
   filter(redcap_event_name %in% events)
 
 # writes out ----
-f <- file.path("output", "coldpain-data.rds")
+f <- file.path("output", "prepro", "coldpain-data.rds")
 write_rds(res, file = f)

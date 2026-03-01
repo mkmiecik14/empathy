@@ -5,7 +5,7 @@
 # Purpose: explore the longitudinal pain data
 
 # libraries ----
-library(tidyverse); library(glue); library(here)
+library(tidyverse)
 library(lme4); library(lmerTest)
 library(mgcv)
 
@@ -13,12 +13,8 @@ library(mgcv)
 source("fns/broom_gam.R") # functions for extracting GAMs
 source("fns/predict_link.R") # function for predicting on link function
 
-# grabs versioning info ----
-source("fns/versioning_proc.R")
-vinfo <- versioning_proc(testing = FALSE, this_script = "analysis-long-pain")
-
 # data ----
-f <- file.path("output", "prepro-long-pain-v1.rds")
+f <- file.path("output", "prepro", "prepro-long-pain.rds")
 d <- read_rds(f)
 
 # plotting raw data ----
@@ -197,6 +193,6 @@ v <-
     ls(pattern = "^param"), "glance_gaus", "glance_tw"
     )
 res <- mget(v) # creates list
-versioned_write_rds(data = res, vi = vinfo) # writes out
+write_rds(res, "output/analysis-long-pain.rds")
 
 

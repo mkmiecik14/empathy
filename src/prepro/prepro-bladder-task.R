@@ -8,7 +8,7 @@
 library(tidyverse); library(hms)
 
 # data ----
-f <- file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 dd <- read_csv(f)
 
 f <- file.path("doc", "bladder-test-dict.xlsx")
@@ -75,5 +75,5 @@ bladder_task <-
   mutate(diff_time = as.numeric(time - min_time, units = "mins"))
 
 # writes out data ----
-f <- file.path("output", "bladder-task-long-data.rds")
+f <- file.path("output", "prepro", "bladder-task-long-data.rds")
 write_rds(bladder_task, file = f)

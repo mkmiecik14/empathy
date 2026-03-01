@@ -9,12 +9,12 @@
 source("fns/r-prep.R")
 
 # Loads in excel document
-ss_masterlist <- 
-  read_excel(path = "../data/empathy-ids.xlsx", sheet = "empathy-ids")
+ss_masterlist <-
+  read_excel(path = "data/empathy-ids.xlsx", sheet = "empathy-ids")
 
 # Saves out masterlist
-save(ss_masterlist, file = "../output/ss-masterlist.rda")
-write_csv(ss_masterlist, file = "../output/ss-masterlist.csv")
+save(ss_masterlist, file = "output/prepro/ss-masterlist.rda")
+write_csv(ss_masterlist, file = "output/prepro/ss-masterlist.csv")
 
 # Removes script objects
 rm(ss_masterlist)

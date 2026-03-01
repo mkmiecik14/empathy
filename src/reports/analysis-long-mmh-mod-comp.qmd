@@ -16,21 +16,17 @@ execute:
   warning: false
   error: false
   working-directory: project
-params:
-  version: v1
 ---
 
 ```{r, setup, eval=TRUE}
 # libraries ----
-library(tidyverse); library(glue)
+library(tidyverse)
 
 # functions ----
-source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
-#d <- read_rds(here::here("output", "analysis-long-mmh-mod-comp-v1.rds"))
+source("fns/kable_tools.R")
 
-# gets filename and loads data automatically by version info in params
-f <- glue("../../output/analysis-long-mmh-mod-comp-{params$version}.rds")
-d <- read_rds(file = f)
+# loads data
+d <- read_rds("output/analysis-long-mmh-mod-comp.rds")
 ```
 
 ## Brief Summary

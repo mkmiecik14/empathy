@@ -15,14 +15,10 @@ library(tidyverse)
 source("fns/predict_link.R")
 source("fns/broom_gam.R")
 
-# grabs versioning info ----
-source("fns/versioning_proc.R")
-vinfo <- versioning_proc(testing = FALSE, this_script = "analysis-long-mmh")
-
 # data ----
 
 ## longitudinal pain data
-f <- file.path("output", "prepro-long-pain-v1.rds")
+f <- file.path("output", "prepro", "prepro-long-pain.rds")
 d <- read_rds(f)
 
 ## PCA results
@@ -364,6 +360,6 @@ res <-
     qq_plot = qq_plot, # qq plots of the models
     gam_preds = gam_preds # list of the predictions and plots for each GAM
   )
-versioned_write_rds(data = res, vi = vinfo) # writes out
+write_rds(res, "output/analysis-long-mmh.rds")
 
 

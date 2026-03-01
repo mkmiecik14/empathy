@@ -8,7 +8,7 @@
 library(tidyverse)
 
 # data ----
-f <- file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 dd <- read_csv(f)
 
 # proc ----
@@ -42,5 +42,5 @@ res <-
     )
 
 # writing out ----
-f <- file.path("output", "afterpain-data.rds")
+f <- file.path("output", "prepro", "afterpain-data.rds")
 write_rds(res, file = f)

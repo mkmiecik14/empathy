@@ -46,7 +46,7 @@ library(tidyverse); library(RColorBrewer)
 # dd <- readRDS(file = f)
 
 # when rendering quarto:
-dd <- readRDS(file = "../../output/ppt-data.rds")
+dd <- readRDS(file = "output/prepro/ppt-data.rds")
 
 # plot elements ----
 library(ghibli)

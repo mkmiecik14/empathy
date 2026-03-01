@@ -8,7 +8,7 @@
 library(tidyverse)
 
 # data ----
-f <- file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 dd <- read_csv(f)
 
 # re-used variables ----
@@ -59,5 +59,5 @@ cssi_long_sum <-
 res <- cssi_long_sum %>% select(-n)
 
 # writes out data ----
-f <- file.path("output", "cssi-data.rds")
+f <- file.path("output", "prepro", "cssi-data.rds")
 write_rds(res, file = f)

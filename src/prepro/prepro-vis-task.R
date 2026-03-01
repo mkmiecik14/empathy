@@ -96,8 +96,28 @@ dd2 <-
 
 # writes out data ----
 dr <- dd2 # data will get cleaned here
-f <- file.path("output", "vis-task-data.rds") # file name
+f <- file.path("output", "prepro", "vis-task-data.rds") # file name
 saveRDS(object = dr, file = f)
+
+# computes summary statistics (mean and slope) per subject/session ----
+vis_dates <- dr %>% select(ss, session, date) %>% distinct()
+vis_mods <-
+  dr %>%
+  filter(complete.cases(rating)) %>%
+  nest_by(ss, session) %>%
+  mutate(mod = list(lm(rating ~ 1 + scale(stim, scale = FALSE), data = data)))
+vis_sum <-
+  vis_mods %>%
+  summarise(broom::tidy(mod)) %>%
+  ungroup() %>%
+  mutate(
+    term = gsub("\\(Intercept\\)", "vis_mean", term),
+    term = gsub("scale\\(stim, scale = FALSE\\)", "vis_slope", term)
+  ) %>%
+  pivot_wider(id_cols = c(ss, session), names_from = term, values_from = estimate) %>%
+  left_join(vis_dates, ., by = c("ss", "session"))
+f <- file.path("output", "prepro", "vis-task-sum-data.rds")
+saveRDS(vis_sum, file = f)
 
 
 # Cleans up script objects ----

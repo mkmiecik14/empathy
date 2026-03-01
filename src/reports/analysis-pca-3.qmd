@@ -21,22 +21,9 @@ execute:
 library(tidyverse)
 
 # data ----
-render <- FALSE # set to false when rendering
-if (render) {
-  f <- here::here("output", "analysis-pca-3-exp-res.rds")
-  exp_res <- read_rds(file = f)
-
-  f <- here::here("output", "analysis-pca-3-q-res.rds")
-  q_res <- read_rds(file = f)
-  
-  f <- here::here("output", "pca-data.rds")
-  pca_data <- read_rds(file = f)
-}
-
-# when rendering quarto:
-exp_res <- read_rds(file = "../../output/analysis-pca-3-exp-res.rds")
-q_res <- read_rds(file = "../../output/analysis-pca-3-q-res.rds")
-pca_data <- read_rds(file = "../../output/pca-data.rds")
+exp_res <- read_rds(file = "output/analysis-pca-3-exp-res.rds")
+q_res <- read_rds(file = "output/analysis-pca-3-q-res.rds")
+pca_data <- read_rds(file = "output/prepro/pca-data.rds")
 
 # plot elements ----
 library(RColorBrewer); library(ghibli); library(RColorBrewer); library(ggrepel)

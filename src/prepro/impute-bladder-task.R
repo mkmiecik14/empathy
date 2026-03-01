@@ -12,7 +12,7 @@ library(broom.mixed)
 # data ----
 
 ## reads in data
-f <- file.path("output", "bladder-task-long-data.rds")
+f <- file.path("output", "prepro", "bladder-task-long-data.rds")
 d <- read_rds(file = f)
 
 ## preps data for imputation
@@ -192,9 +192,9 @@ dd_res <-
 # saves out ----
 
 ## data for PCA, etc.
-f <- file.path("output", "bladder-task-imp-data.rds")
-write_rds(dd_res, file = f) 
+f <- file.path("output", "prepro", "bladder-task-imp-data.rds")
+write_rds(dd_res, file = f)
 
 ## imputation runs
-f <- file.path("output", "bladder-task-imp-stats.rds")
+f <- file.path("output", "prepro", "bladder-task-imp-stats.rds")
 write_rds(timp, file = f)

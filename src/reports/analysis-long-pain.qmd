@@ -15,26 +15,20 @@ execute:
   warning: false
   error: false
   working-directory: project
-params:
-  version: v1
 ---
 
 ```{r, setup, eval=TRUE}
 # libraries ----
-library(tidyverse); library(glue); library(kableExtra); library(here)
+library(tidyverse); library(kableExtra)
 
 # functions ----
-source("../../fns/kable_tools.R") # source("fns/kable_tools.R")
-#d <- read_rds(here::here("output", "analysis-long-pain-v1.rds"))
+source("fns/kable_tools.R")
 
-# gets filename and loads data
-f <- glue("../../output/analysis-long-pain-{params$version}.rds")
-d <- read_rds(file = f)
+# loads data
+d <- read_rds("output/analysis-long-pain.rds")
 ```
 
 ## Brief summary
-
-This is version: `r params$version` of this analysis.
 
 This analysis explored the distributions and change over time—using linear mixed models[^1]—of the 4 longitudinal pain questions of interest:
 

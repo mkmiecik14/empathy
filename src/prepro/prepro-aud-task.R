@@ -80,8 +80,28 @@ dd2 <-
 
 # writes out data ----
 dr <- dd2 # data will get cleaned here
-f <- file.path("output", "aud-task-data.rds") # file name
+f <- file.path("output", "prepro", "aud-task-data.rds") # file name
 saveRDS(object = dr, file = f)
+
+# computes summary statistics (mean and slope) per subject/session ----
+aud_dates <- dr %>% select(ss, session, date) %>% distinct()
+aud_mods <-
+  dr %>%
+  filter(complete.cases(rating)) %>%
+  nest_by(ss, session) %>%
+  mutate(mod = list(lm(rating ~ 1 + scale(stim, scale = FALSE), data = data)))
+aud_sum <-
+  aud_mods %>%
+  summarise(broom::tidy(mod)) %>%
+  ungroup() %>%
+  mutate(
+    term = gsub("\\(Intercept\\)", "aud_mean", term),
+    term = gsub("scale\\(stim, scale = FALSE\\)", "aud_slope", term)
+  ) %>%
+  pivot_wider(id_cols = c(ss, session), names_from = term, values_from = estimate) %>%
+  left_join(aud_dates, ., by = c("ss", "session"))
+f <- file.path("output", "prepro", "aud-task-sum-data.rds")
+saveRDS(aud_sum, file = f)
 
 
 # ARCHIVAL --- MOVE THIS TO A QC SCRIPT! ----

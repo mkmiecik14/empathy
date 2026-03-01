@@ -5,15 +5,10 @@
 # Purpose: preprocess the longitudinal pain ratings
 
 # libraries ----
-library(tidyverse); library(glue); library(here)
-
-# grabs versioning info ----
-source(file.path(here(), "fns", "versioning_proc.R"))
-vinfo <- versioning_proc(testing = FALSE, this_script = "prepro-long-pain")
+library(tidyverse)
 
 # data ----
-f <- 
-  file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 data <- read_csv(f)
 
 # proc ----
@@ -31,6 +26,4 @@ data_proc <-
   mutate(days_since_baseline = todaysdate - baselinedate, .after = baselinedate)
 
 # writes out ----
-fname <- glue("{vinfo$script}-{vinfo$version}.rds") # dynamic file name
-f <- file.path(vinfo$output, fname) # constructs file path
-write_rds(data_proc, file = f) # writes file
+write_rds(data_proc, file.path("output", "prepro", "prepro-long-pain.rds"))

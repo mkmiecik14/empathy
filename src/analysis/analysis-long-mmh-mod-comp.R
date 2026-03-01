@@ -4,11 +4,6 @@
 # Current version: v1
 # Purpose: use model comparison to determine best PCA to use
 
-# grabs versioning info ----
-source("fns/versioning_proc.R")
-vinfo <- 
-  versioning_proc(testing = FALSE, this_script = "analysis-long-mmh-mod-comp")
-
 # libraries ----
 library(tidyverse)
 
@@ -19,8 +14,8 @@ source("fns/broom_gam.R")
 # data ----
 
 ## longitudinal pain data
-f <- file.path("output", "prepro-long-pain-v1.rds")
-d <- 
+f <- file.path("output", "prepro", "prepro-long-pain.rds")
+d <-
   read_rds(f) %>%
   mutate(
     yrs_since_pv1 = time_length(
@@ -228,4 +223,4 @@ res <-
     models = res_list, omni = omni2, ests = ests2, aic_plot = aic_plot,
     bic_plot = bic_plot, rsq_plot = rsq_plot 
     )
-versioned_write_rds(data = res, vi = vinfo) # writes out
+write_rds(res, "output/analysis-long-mmh-mod-comp.rds")

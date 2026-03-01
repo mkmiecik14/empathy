@@ -5,14 +5,6 @@
 # change over time; script is simplified to focus on linear mixed model w/o
 # smooth terms
 
-# grabs versioning info ----
-source("fns/versioning_proc.R")
-vinfo <- 
-  versioning_proc(
-    testing = FALSE, 
-    this_script = "analysis-long-supp-proj-simplified"
-    )
-
 # libraries ----
 library(tidyverse); library(patchwork); library(mgcv)
 RDGY <- RColorBrewer::brewer.pal(11, "RdGy")
@@ -22,7 +14,7 @@ source("fns/broom_gam.R")
 source("fns/predict_link.R")
 
 # data ----
-f <- file.path("output", "pca-3-fi-supp-proj-mod-data.rds")
+f <- file.path("output", "prepro", "pca-3-fi-supp-proj-mod-data.rds")
 d <- read_rds(f)
 
 # proc ----
@@ -289,4 +281,4 @@ res <- list(
 )
 
 # saving ----
-versioned_write_rds(data = res, vi = vinfo)
+write_rds(res, "output/analysis-long-supp-proj-simplified.rds")

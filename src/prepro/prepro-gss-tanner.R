@@ -76,5 +76,5 @@ data <-
     )
 
 # writing out ----
-f <- file.path("output", paste0("tanner-body-gss-data.rds"))
+f <- file.path("output", "prepro", "tanner-body-gss-data.rds")
 write_rds(data, f)

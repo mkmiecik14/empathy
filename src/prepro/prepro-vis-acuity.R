@@ -57,9 +57,9 @@ dd_f_d <-
   arrange(ss, session)
 
 # saving out for questions to staff ----
-f <- file.path("output", "visual-acuity-data-queries.csv")
+f <- file.path("output", "prepro", "visual-acuity-data-queries.csv")
 write_csv(dd_f_d, file = f)
 
 # saving out data ----
-f <- file.path("output", "visual-acuity-data.rds")
+f <- file.path("output", "prepro", "visual-acuity-data.rds")
 saveRDS(dd_f, file = f)

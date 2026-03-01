@@ -4,21 +4,13 @@
 # Purpose: compute the correlations between the questionnaires and the PCs
 # Depends on analysis-pca-3.R
 
-# grabs versioning info ----
-source("fns/versioning_proc.R")
-vinfo <- 
-  versioning_proc(
-    testing = FALSE, 
-    this_script = "analysis-pca-correlations"
-  )
-
 # libraries ----
 library(tidyverse); library(correlation)
 library(RColorBrewer)
 RDGY <- brewer.pal(11, "RdGy")
 
 # data ----
-f <- file.path("output", "pca-data.rds")
+f <- file.path("output", "prepro", "pca-data.rds")
 pca_data <- read_rds(f)
 
 f <- file.path("output", "analysis-pca-3-exp-res.rds")
@@ -79,4 +71,4 @@ res <-
   )
 
 # saving ----
-versioned_write_rds(data = res, vi = vinfo)
+write_rds(res, "output/analysis-pca-correlations.rds")

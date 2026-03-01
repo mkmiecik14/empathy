@@ -33,8 +33,7 @@ s_cols <- brewer.pal(9, name = "PuBu")[c(6:8)] # session colors
 names(s_cols) <- c(10:12)
 
 # data ----
-dd <- readRDS(file = "../../output/visual-acuity-data.rds")
-#dd <- readRDS(file = "output/visual-acuity-data.rds") # uncomment when working in doc
+dd <- readRDS(file = "../../output/prepro/visual-acuity-data.rds")
 
 # remove after these data have been cleaned
 dc <- dd %>% filter(session %in% c(10:12)) 
