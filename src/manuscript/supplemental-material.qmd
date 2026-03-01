@@ -13,11 +13,20 @@ execute:
   echo: false
   warning: false
   error: false
-  working-directory: project
 ---
 
 ```{r, setup}
 library(tidyverse)
+
+# setting up paths depending on how the script is run
+load_from_manu <- function(file){
+  manu_dir <- file.path("output", "manuscript")
+  if (interactive()) {
+    path <- file.path(manu_dir, file)
+  } else{
+    path <- file.path("..", "..", manu_dir, file)
+  }
+}
 ```
 
 ## Figures
@@ -27,7 +36,7 @@ library(tidyverse)
 #| fig-cap: "Scree plot indicating variance explained in each principal component and significance from permutations testing."
 #| out-width: "100%"
 
-knitr::include_graphics("output/manuscript/scree-plot.png")
+knitr::include_graphics(load_from_manu("scree-plot.png"))
 ```
 
 ## Tables

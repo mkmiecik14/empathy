@@ -340,7 +340,7 @@ table_1 <-
   rename(PCA = Statistic.x, `Mixed-Modeling` = Statistic.y) %>%
   mutate(
     Category = if_else(Category == lag(Category, default = ""), "", Category),
-    Measure = if_else(is.na(Measure), "N/A", Measure)
+    Measure = if_else(is.na(Measure), "Missing", Measure)
     )
 
 # FLEXTABLE ====================================================================

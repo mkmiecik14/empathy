@@ -8,35 +8,28 @@ set -euo pipefail
 TIMESTAMP="$(date +%Y-%m-%d_%H-%M-%S)"
 _PARENT="${PIPELINE_LOG_DIR:-logs}"
 LOG_DIR="${_PARENT}/run_manuscript_${TIMESTAMP}"
-mkdir -p output/reports output/manuscript "$LOG_DIR"
+mkdir -p output/manuscript "$LOG_DIR"
 echo "Logging to: ${LOG_DIR}"
-
-echo "=== Rendering analysis reports ==="
-for qmd in src/reports/*.qmd; do
-  base="$(basename "$qmd")"
-  [[ "$base" == "template-report.qmd" ]] && continue
-  echo "Rendering $qmd ..."
-  quarto render "$qmd" \
-    > "${LOG_DIR}/${base%.qmd}_$(date +%H-%M-%S).txt" 2>&1
-  pdf="${qmd%.qmd}.pdf"
-  if [[ -f "$pdf" ]]; then
-    mv "$pdf" output/reports/
-  fi
-done
 
 echo "=== Running manuscript R scripts ==="
 Rscript src/manuscript/manu-table-1.R \
-  > "${LOG_DIR}/manu-table-1_$(date +%H-%M-%S).txt" 2>&1
+  > "output/manuscript/manu-table-1-console.txt" \
+  2> "${LOG_DIR}/manu-table-1_$(date +%H-%M-%S).txt"
 Rscript src/manuscript/manu-gamm-results.R \
-  > "${LOG_DIR}/manu-gamm-results_$(date +%H-%M-%S).txt" 2>&1
+  > "output/manuscript/manu-gamm-results-console.txt" \
+  2> "${LOG_DIR}/manu-gamm-results_$(date +%H-%M-%S).txt"
 Rscript src/manuscript/manu-pca-results.R \
-  > "${LOG_DIR}/manu-pca-results_$(date +%H-%M-%S).txt" 2>&1
+  > "output/manuscript/manu-pca-results-console.txt" \
+  2> "${LOG_DIR}/manu-pca-results_$(date +%H-%M-%S).txt"
 Rscript src/manuscript/manu-consort.R \
-  > "${LOG_DIR}/manu-consort_$(date +%H-%M-%S).txt" 2>&1
+  > "output/manuscript/manu-consort-console.txt" \
+  2> "${LOG_DIR}/manu-consort_$(date +%H-%M-%S).txt"
 Rscript src/manuscript/manu-bladder-task-imputation-info.R \
-  > "${LOG_DIR}/manu-bladder-task-imputation-info_$(date +%H-%M-%S).txt" 2>&1
+  > "output/manuscript/manu-bladder-task-imputation-info-console.txt" \
+  2> "${LOG_DIR}/manu-bladder-task-imputation-info_$(date +%H-%M-%S).txt"
 Rscript src/manuscript/supplemental-boxplots.R \
-  > "${LOG_DIR}/supplemental-boxplots_$(date +%H-%M-%S).txt" 2>&1
+  > "output/manuscript/supplemental-boxplots-console.txt" \
+  2> "${LOG_DIR}/supplemental-boxplots_$(date +%H-%M-%S).txt"
 
 echo "=== Rendering supplemental material ==="
 quarto render src/manuscript/supplemental-material.qmd \

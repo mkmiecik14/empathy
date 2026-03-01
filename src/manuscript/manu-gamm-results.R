@@ -10,7 +10,7 @@ message("")
 # libraries ----
 library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
 library(grid); library(colorspace); library(ggsci); library(scales); library(flextable)
-library(kableExtra)
+library(kableExtra); library(officer)
 
 # Functions ----
 source("fns/save_figure.R")
@@ -393,12 +393,13 @@ ft_p_table <-
   font(fontname = "Times New Roman", part = "all") %>%
   fontsize(size = 10, part = "all") %>%
   bold(part = "header") %>%
+  bold(i = ~ p < 0.05, part = "body") %>%
   align(align = "left", part = "all") %>%
-  align(j = c("b", "LL", "UL", "SE", "t", "p"), align = "right", part = "all") %>%
+  hline(i = 1, j = 1:7, border = fp_border(width = 0), part = "header") %>%
+  hline(i = 1, j = c(3, 4), border = fp_border(width = 1), part = "header") %>%
   colformat_double(j = c("b", "LL", "UL", "SE", "t"), digits = 3) %>%
   colformat_double(j = "p", digits = 3) %>%
   autofit()
-
 
 
 # saves out
