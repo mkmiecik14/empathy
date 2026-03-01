@@ -83,6 +83,24 @@ dd2 <-
 # Therefore, this number will be replaced with NA
   mutate(rating = ifelse(ss == 252 & rating == 87, NA, rating))
 
+# Fix session numbers, as some of these were not entered consistently
+# 10 = baseline, 11 = PV1, 12 = PV2
+ss_issues <- dd2 %>% filter(!session %in% c(10:12)) %>% pull(ss)
+session_fix <-
+  dd2 %>%
+  filter(ss %in% ss_issues) %>%
+  select(ss, session, date) %>%
+  distinct() %>%
+  arrange(ss, date) %>%
+  mutate(session_correct = 9L + row_number(), .by = ss) %>%
+  select(ss, session, session_correct)
+
+dd2 <-
+  dd2 %>%
+  left_join(session_fix, by = c("ss", "session")) %>%
+  mutate(session = coalesce(session_correct, session)) %>% 
+  select(-session_correct)
+
 # # query 1: ratings that are not doubles outside of usual values
 # dd_q1 <- dd2 %>% filter(!between(rating, 0, 20))
 # f <- file.path("output", "vis-task-query-1.csv")

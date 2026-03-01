@@ -64,6 +64,25 @@ dd2 <-
   left_join(ss_list, ., by = c("task", "ss", "session", "date")) %>%
   mutate(date = mdy(date))
 
+# Fix session numbers, as some of these were not entered consistently
+# 10 = baseline, 11 = PV1, 12 = PV2
+ss_issues <- dd2 %>% filter(!session %in% c(10:12)) %>% pull(ss)
+
+session_fix <-
+  dd2 %>%
+  filter(ss %in% ss_issues) %>%
+  select(ss, session, date) %>%
+  distinct() %>%
+  arrange(ss, date) %>%
+  mutate(session_correct = 9L + row_number(), .by = ss) %>%
+  select(ss, session, session_correct)
+
+dd2 <-
+  dd2 %>%
+  left_join(session_fix, by = c("ss", "session")) %>%
+  mutate(session = coalesce(session_correct, session)) %>%
+  select(-session_correct)
+
 # Test done here to prove that ratings > 20 are fixed
 # dd %>% count(rating) %>% View()
 

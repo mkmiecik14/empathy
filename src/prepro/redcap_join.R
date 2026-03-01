@@ -21,7 +21,9 @@ aud_sum <- readRDS(file.path("output", "prepro", "aud-task-sum-data.rds"))
 
 # combines all task data
 task_data <-
-  full_join(vis_sum, aud_sum, by = c("ss", "session", "date")) %>%
+  full_join(vis_sum, aud_sum, by = c("ss", "session")) %>%
+  mutate(date = coalesce(date.x, date.y)) %>%
+  select(-date.x, -date.y) %>%
   arrange(ss, session) %>%
   # adds redcap data to help with join
   mutate(
