@@ -83,7 +83,7 @@ ppt_ss_wide <-
 # prepping data for join ----
 
 ## auditory / visual task data
-task_data_j <- task_data %>% select(-session, -date)
+task_data_j <- task_data %>% select(-session)
 
 ## PPT / CPM data
 ppt_data_j <- 
