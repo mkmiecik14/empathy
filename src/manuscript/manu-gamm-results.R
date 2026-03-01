@@ -9,7 +9,8 @@ message("")
 
 # libraries ----
 library(tidyverse); library(patchwork); library(RColorBrewer); library(ghibli)
-library(grid); library(colorspace); library(ggsci); library(scales)
+library(grid); library(colorspace); library(ggsci); library(scales); library(flextable)
+library(kableExtra)
 
 # Functions ----
 source("fns/save_figure.R")
@@ -210,11 +211,6 @@ pdata_sum <-
     )
     )
 
-# creating color palette
-#my_color <- ghibli_palettes$MononokeMedium[4]  # Replace with your color
-#colors <- lighten(my_color, amount = seq(0.6, 0, length.out = 3))
-# uncomment to see colors:
-# barplot(rep(1, length(colors)), col = colors, border = NA, axes = FALSE)
 colors <- pal_jco("default")(3)[c(1, 3, 2)]
 names(colors) <- c("low", "middle", "high")
 y_scale <- scale_y_continuous(breaks = seq(-5, 5, 1)) # consistently set y-axis
@@ -386,6 +382,25 @@ p_table <-
   type = "Parametric") %>%
   select(Term = term, b = estimate, LL = lwr, UL = upr, SE = se, t, p)
 
+# Flextable for the GAMM results
+ft_p_table <-
+  flextable(p_table) %>%
+  add_header_row(
+    values = c("", "", "95% CI", "", "", ""),
+    colwidths = c(1, 1, 2, 1, 1, 1)
+  ) %>%
+  bg(i = seq(2, nrow(p_table), by = 2), bg = "#F0F0F0", part = "body") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  fontsize(size = 10, part = "all") %>%
+  bold(part = "header") %>%
+  align(align = "left", part = "all") %>%
+  align(j = c("b", "LL", "UL", "SE", "t", "p"), align = "right", part = "all") %>%
+  colformat_double(j = c("b", "LL", "UL", "SE", "t"), digits = 3) %>%
+  colformat_double(j = "p", digits = 3) %>%
+  autofit()
+
+
+
 # saves out
 message("=============================")
 message("=== SAVING OUT GAMM TABLE ===")
@@ -394,4 +409,13 @@ message("")
 f <- file.path("output", "manuscript", "gamm-p-terms-table.csv")
 write_csv(x = p_table, file = f)
 
+f <- file.path("output", "manuscript", "gamm-p-terms-table.docx")
+save_as_docx(ft_p_table, path = f)
+
 # write out a cat() of R2 and AIC values for both models:
+bind_rows(
+  df$model_res$mod1_res$omni,
+  df$model_res$mod2_res$omni,
+.id = "model"
+) %>%
+  kable(format = "pipe")

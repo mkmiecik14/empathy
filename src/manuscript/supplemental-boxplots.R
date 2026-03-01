@@ -105,7 +105,7 @@ fig <-
     panel.grid = element_blank(),
     axis.text = element_text(size = CONFIG$minor_font_size)
   )
-fig
+#fig
 
 # SAVE =========================================================================
 

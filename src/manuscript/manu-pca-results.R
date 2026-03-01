@@ -259,7 +259,7 @@ bsrs_plots_wrapped <-
     panel.grid.major = element_line(linewidth = 0.15), # Major grid lines
     panel.grid.minor = element_line(linewidth = 0.1)  # Minor grid lines
     )
-bsrs_plots_wrapped
+#bsrs_plots_wrapped
 
 # bootstrap ratio plot
 cat("=== SAVING BOOTSTRAP RATIO PLOT ====\n")
@@ -470,7 +470,7 @@ figure2 <-
       size = CONFIG$major_font_size, face = "bold", family = CONFIG$font_family
       )
     )
-figure2
+#figure2
 
 # SAVES FJS FIGURE
 cat("=== SAVING Fjs FIGURE ====\n")
