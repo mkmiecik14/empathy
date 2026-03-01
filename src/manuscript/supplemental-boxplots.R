@@ -19,7 +19,7 @@ CONFIG <- list(
 # DATA =========================================================================
 
 # PCA RESULTS
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 pca_res <- read_rds(f)
 
 # WRANGLING ====================================================================

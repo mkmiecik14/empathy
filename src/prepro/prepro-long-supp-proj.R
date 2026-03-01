@@ -22,11 +22,11 @@ dd_flip <-
 ## Previous PCA models
 
 # experimental only
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 exp_pca_res <- read_rds(file = f)
 
 # experimental + questionnaires
-f <- file.path("output", "analysis-pca-3-q-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-q-res.rds")
 q_pca_res <- read_rds(file = f)
 
 # proc ----

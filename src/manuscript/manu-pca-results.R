@@ -24,7 +24,7 @@ CONFIG <- list(
 )
 
 # data ----
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 pca_res <- read_rds(f)
 
 # PROC ----
@@ -112,7 +112,7 @@ cat("\n")
 #                     #
 #######################
 
-f <- file.path("output", "analysis-pca-correlations-v1.rds")
+f <- file.path("output", "analysis", "analysis-pca-correlations.rds")
 COR_res <- read_rds(f)
 
 # helper function for getting correlaton results to print nicely

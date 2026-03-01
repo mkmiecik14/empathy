@@ -13,16 +13,16 @@ suppressPackageStartupMessages({
 # data ----
 
 # bladder task imputed data
-f <- file.path("output", "bladder-task-imp-data.rds") 
+f <- file.path("output", "prepro", "bladder-task-imp-data.rds")
 imp_data <- read_rds(f)
 
 # PCA baseline data (for participant numbers)
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 pca_res <- read_rds(f)
 pca_ss <- rownames(pca_res$pca_res$Fixed.Data$ExPosition.Data$fi)
 
 # Longitudinal modeling data (for participant numbers)
-f <- file.path("output", "analysis-long-supp-proj-simplified-v1.rds")
+f <- file.path("output", "analysis", "analysis-long-supp-proj-simplified.rds")
 long_res <- read_rds(file = f)
 long_ss <- unique(as.character(long_res$model_res$mod1_res$mod$model$subject_id))
 

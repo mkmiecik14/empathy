@@ -8,14 +8,14 @@ library(tidyverse); library(rlang)
 # data ----
 
 # LONGITUDINAL MMH MODELING
-f <- file.path("output", "analysis-long-supp-proj-simplified-v1.rds")
+f <- file.path("output", "analysis", "analysis-long-supp-proj-simplified.rds")
 df <- read_rds(file = f)
 mod1_data <- as_tibble(model.frame(df$model_res$mod1_res$mod), rownames = "r")
 mod1_data$visit <- df$raw_data[mod1_data$r,]$visit
 long_ss <- unique(as.character(mod1_data$subject_id))
 
 # PCA RESULTS
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 pca_res <- read_rds(f)
 
 # CONVERTING SCALED PCA BACK TO ORIGINAL UNITS
@@ -36,7 +36,7 @@ cat(sprintf("The sample size of longitudinal modeling is n=%s\n", length(long_ss
 cat(sprintf("The sample size of PCA3 is n=%s\n", length(pca_ss)))
 
 # DEMOGRAPHIC DATA ----
-f <- file.path("output", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
+f <- file.path("output", "prepro", "EH17338EMPATHY_DATA_2024-11-07_1140_noPHI-joined.csv")
 demo_data <- read_csv(f)
 id_key <- 
   demo_data %>% 
@@ -245,7 +245,7 @@ long_age <- get_demo_sum(long_ss, age_data, age, "cont")
 lapply(list(pca_age, long_age), attributes) # to see missing
 
 # TANNER STAGE
-f <- file.path("output", "tanner-body-gss-data.rds")
+f <- file.path("output", "prepro", "tanner-body-gss-data.rds")
 tanner_data <- 
   read_rds(f) %>% 
   select(subject_id, redcap_event_name, starts_with("tanner")) %>%

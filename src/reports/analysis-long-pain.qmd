@@ -25,7 +25,7 @@ library(tidyverse); library(kableExtra)
 source("fns/kable_tools.R")
 
 # loads data
-d <- read_rds("output/analysis-long-pain.rds")
+d <- read_rds("output/analysis/analysis-long-pain.rds")
 ```
 
 ## Brief summary

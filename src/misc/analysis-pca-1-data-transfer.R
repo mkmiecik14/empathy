@@ -8,7 +8,7 @@
 library(tidyverse)
 
 # loads data ----
-f <- file.path("output", "analysis-pca-1-q-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-1-q-res.rds")
 q_res <- read_rds(file = f)
 
 # processing ----

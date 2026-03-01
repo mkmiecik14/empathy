@@ -38,8 +38,8 @@ d <-
 ## PCA results
 
 # data
-exp_pca <- read_rds(file = "output/analysis-pca-3-exp-res.rds")
-q_pca <- read_rds(file = "output/analysis-pca-3-q-res.rds")
+exp_pca <- read_rds(file = file.path("output", "analysis", "analysis-pca-3-exp-res.rds"))
+q_pca <- read_rds(file = file.path("output", "analysis", "analysis-pca-3-q-res.rds"))
 
 # function to extract fi
 extract_fi <- function(data, suffix = ""){
@@ -223,4 +223,4 @@ res <-
     models = res_list, omni = omni2, ests = ests2, aic_plot = aic_plot,
     bic_plot = bic_plot, rsq_plot = rsq_plot 
     )
-write_rds(res, "output/analysis-long-mmh-mod-comp.rds")
+write_rds(res, file.path("output", "analysis", "analysis-long-mmh-mod-comp.rds"))

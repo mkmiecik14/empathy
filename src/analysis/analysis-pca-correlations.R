@@ -13,7 +13,7 @@ RDGY <- brewer.pal(11, "RdGy")
 f <- file.path("output", "prepro", "pca-data.rds")
 pca_data <- read_rds(f)
 
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 pca_res <- read_rds(f)
 
 # PROC ----
@@ -71,4 +71,4 @@ res <-
   )
 
 # saving ----
-write_rds(res, "output/analysis-pca-correlations.rds")
+write_rds(res, file.path("output", "analysis", "analysis-pca-correlations.rds"))

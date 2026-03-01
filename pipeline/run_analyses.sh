@@ -8,7 +8,7 @@ set -euo pipefail
 TIMESTAMP="$(date +%Y-%m-%d_%H-%M-%S)"
 _PARENT="${PIPELINE_LOG_DIR:-logs}"
 LOG_DIR="${_PARENT}/run_analyses_${TIMESTAMP}"
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" output/analysis
 echo "Logging to: ${LOG_DIR}"
 
 echo "=== PCA analyses ==="

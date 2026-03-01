@@ -193,6 +193,6 @@ v <-
     ls(pattern = "^param"), "glance_gaus", "glance_tw"
     )
 res <- mget(v) # creates list
-write_rds(res, "output/analysis-long-pain.rds")
+write_rds(res, file.path("output", "analysis", "analysis-long-pain.rds"))
 
 

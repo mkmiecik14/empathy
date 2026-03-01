@@ -21,8 +21,8 @@ execute:
 library(tidyverse)
 
 # data ----
-exp_res <- read_rds(file = "output/analysis-pca-3-exp-res.rds")
-q_res <- read_rds(file = "output/analysis-pca-3-q-res.rds")
+exp_res <- read_rds(file = "output/analysis/analysis-pca-3-exp-res.rds")
+q_res <- read_rds(file = "output/analysis/analysis-pca-3-q-res.rds")
 pca_data <- read_rds(file = "output/prepro/pca-data.rds")
 
 # plot elements ----

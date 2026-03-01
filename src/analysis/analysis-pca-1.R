@@ -74,11 +74,11 @@ res_q <-
 # writes out results ----
 
 ## PCA results with questionnaires as supplemental projections
-f <- file.path("output", paste0(script, "-exp-res.rds"))
+f <- file.path("output", "analysis", paste0(script, "-exp-res.rds"))
 pca_exp_res <- list(res, supp_res)
 names(pca_exp_res) <- c("pca_res", "supp_proj")
 write_rds(pca_exp_res, file = f)
 
 ## PCA results with questionnaires included
-f <- file.path("output", paste0(script, "-q-res.rds"))
+f <- file.path("output", "analysis", paste0(script, "-q-res.rds"))
 write_rds(res_q, file = f)

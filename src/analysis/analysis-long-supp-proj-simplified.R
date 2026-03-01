@@ -281,4 +281,4 @@ res <- list(
 )
 
 # saving ----
-write_rds(res, "output/analysis-long-supp-proj-simplified.rds")
+write_rds(res, file.path("output", "analysis", "analysis-long-supp-proj-simplified.rds"))

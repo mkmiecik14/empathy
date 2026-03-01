@@ -22,7 +22,7 @@ f <- file.path("output", "prepro", "prepro-long-pain.rds")
 d <- read_rds(f)
 
 ## PCA results
-f <- file.path("output", "analysis-pca-3-q-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-q-res.rds")
 pca_res <- read_rds(f)
 fi <- 
   pca_res$Fixed.Data$ExPosition.Data$fi %>% 
@@ -360,6 +360,6 @@ res <-
     qq_plot = qq_plot, # qq plots of the models
     gam_preds = gam_preds # list of the predictions and plots for each GAM
   )
-write_rds(res, "output/analysis-long-mmh.rds")
+write_rds(res, file.path("output", "analysis", "analysis-long-mmh.rds"))
 
 

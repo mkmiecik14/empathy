@@ -33,7 +33,7 @@ library(kableExtra)
 source("fns/kable_tools.R")
 
 # loads data
-f <- "output/analysis-long-supp-proj.rds"
+f <- "output/analysis/analysis-long-supp-proj.rds"
 results <- read_rds(file = f)
 
 # extract components for easier access

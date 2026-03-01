@@ -13,7 +13,7 @@ library(tidyverse)
 # data ----
 
 # LONGITUDINAL MMH MODELING
-f <- file.path("output", "analysis-long-supp-proj-simplified-v1.rds")
+f <- file.path("output", "analysis", "analysis-long-supp-proj-simplified.rds")
 df <- read_rds(file = f)
 mod1_data <- as_tibble(model.frame(df$model_res$mod1_res$mod), rownames = "r")
 mod1_data$visit <- df$raw_data[mod1_data$r,]$visit
@@ -51,7 +51,7 @@ avg_time <-
     )
 
 # PCA RESULTS
-f <- file.path("output", "analysis-pca-3-exp-res.rds")
+f <- file.path("output", "analysis", "analysis-pca-3-exp-res.rds")
 pca_res <- read_rds(f)
 pca_ss <- rownames(pca_res$pca_res$Fixed.Data$ExPosition.Data$X)
 

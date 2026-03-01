@@ -69,7 +69,7 @@ cust_annots <- list(
 # data ----
 
 # LONGITUDINAL MMH MODELING
-f <- file.path("output", "analysis-long-supp-proj-simplified-v1.rds")
+f <- file.path("output", "analysis", "analysis-long-supp-proj-simplified.rds")
 df <- read_rds(file = f)
 
 # recreating these figures for the manuscript
