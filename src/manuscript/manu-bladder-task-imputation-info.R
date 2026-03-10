@@ -2,8 +2,8 @@
 # Matt Kmiecik
 # Purpose: provides information for methods on bladder task imputation
 
-message("=== BLADDER TASK IMPUTATION INFORMATION ===")
-message("")
+cat("=== BLADDER TASK IMPUTATION INFORMATION ===\n")
+cat("\n")
 
 # libraries ----
 suppressPackageStartupMessages({
@@ -84,29 +84,17 @@ print_imputation_numbers <- function(data, subjects = NULL, decimals = 2, print 
 }
 
 # Full sample that imputation was performed on
-message(
-  "Full sample that the imputation was performed on (n=", 
-  length(unique(imp_data_c$subject_id)), 
-  "):"
-  )
+cat(paste0("Full sample that the imputation was performed on (n=", length(unique(imp_data_c$subject_id)), "):\n"))
 print_imputation_numbers(imp_data_c)
-message("")
+cat("\n")
 
-message(
-  "Baseline Experimental PCA sample (n=", 
-  length(pca_ss), 
-  "):"
-)
+cat(paste0("Baseline Experimental PCA sample (n=", length(pca_ss), "):\n"))
 print_imputation_numbers(imp_data_c, subjects = pca_ss)
-message("")
+cat("\n")
 
-message(
-  "Longitudinal MMH modeling sample (n=", 
-  length(long_ss), 
-  "):"
-)
+cat(paste0("Longitudinal MMH modeling sample (n=", length(long_ss), "):\n"))
 print_imputation_numbers(imp_data_c, subjects = long_ss)
-message("")
+cat("\n")
 
 # computing range of these
 imp_ranges <- 
@@ -118,6 +106,7 @@ imp_ranges <-
   ) %>%
   summarise(across(contains("imp"), ~max(.x) - min(.x)), .by = redcap_event_name)
 
-message("=== Ranges (max - min) of the percentages across data sets: ===")
+cat("=== Ranges (max - min) of the percentages across data sets: ===\n")
 knitr::kable(imp_ranges, format = "simple")
+cat("\n")
             

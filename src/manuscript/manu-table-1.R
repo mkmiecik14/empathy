@@ -353,6 +353,7 @@ ft_table_1 <-
     `Mixed-Modeling` = "Mixed-Modeling"
   ) %>%
   add_header_row(values = c("", "Analysis Cohort"), colwidths = c(2, 2)) %>%
+  hline(i = 1, j = 1:2, border = officer::fp_border(width = 0), part = "header") %>%
   bg(i = seq(2, nrow(table_1), by = 2), bg = "#F0F0F0", part = "body") %>%
   font(fontname = "Times New Roman", part = "all") %>%
   fontsize(size = 10, part = "all") %>%

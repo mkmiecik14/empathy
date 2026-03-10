@@ -2,10 +2,10 @@
 # Matt Kmiecik
 # Purpose: generate numbers for the manuscript's CONSORT diagram
 
-message("===================================")
-message("=== MANUSCRIPT CONSORT DIAGRAM ====")
-message("===================================")
-message("")
+cat("===================================\n")
+cat("=== MANUSCRIPT CONSORT DIAGRAM ====\n")
+cat("===================================\n")
+cat("\n")
 
 # libraries ----
 library(tidyverse)
@@ -56,18 +56,21 @@ pca_res <- read_rds(f)
 pca_ss <- rownames(pca_res$pca_res$Fixed.Data$ExPosition.Data$X)
 
 # PRINTS
-message("NUMBERS FOR CONSORT DIAGRAM:")
-message("----------------------------")
-message("The number of participants in the baseline PCA: n=", length(pca_ss))
-message("The number of participants at each timepoint in the mixed-models:")
+cat("NUMBERS FOR CONSORT DIAGRAM:\n")
+cat("----------------------------\n")
+cat(paste0("The number of participants in the baseline PCA: n=", length(pca_ss), "\n"))
+cat("The number of participants at each timepoint in the mixed-models:\n")
 knitr::kable(visit_n, format = "simple")
-message("The number of timepoints contributed by participants in the mixed-models:")
+cat("\n")
+cat("The number of timepoints contributed by participants in the mixed-models:\n")
 knitr::kable(timepoints_n, format = "simple")
 
-message("NUMBERS FOR RESULTS SECTION:")
-message("----------------------------")
-message("The total number of participants for longitudinal modeling was: n=", length(long_ss))
-message("Average time since baseline (in years) for each visit: ")
+cat("\n")
+cat("NUMBERS FOR RESULTS SECTION:\n")
+cat("----------------------------\n")
+cat(paste0("The total number of participants for longitudinal modeling was: n=", length(long_ss), "\n"))
+cat("Average time since baseline (in years) for each visit:\n")
 knitr::kable(avg_time, format = "simple")
+cat("\n")
 
 

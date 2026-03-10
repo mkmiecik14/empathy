@@ -39,7 +39,14 @@ load_from_manu <- function(file){
 knitr::include_graphics(load_from_manu("scree-plot.png"))
 ```
 
-## Tables
+```{r}
+#| label: supp-boxplots
+#| fig-cap: "Boxplots of standardized multimodal hypersensitivity (MMH) testing measures. Participants were separated into low vs. high MMH based on quartiles of factor score loadings on the first principal component (PC1). Low MMH participants were in the bottom quartile and high MMH participants were in the upper quartile. Higher scores indicate greater sensitivity/impairment."
+#| out-width: "100%"
+
+knitr::include_graphics(load_from_manu("supplemental-boxplots.png"))
+```
+
 
 
 

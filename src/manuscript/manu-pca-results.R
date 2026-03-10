@@ -120,7 +120,8 @@ print_cor_res <- function(pc = "PC1"){
   res <- 
     COR_res$cor_res %>% 
     filter(Parameter1 == pc) %>% 
-    select(Parameter1, Parameter2, r, CI_low, CI_high, p, t, df_error) %>% 
+    select(Parameter1, Parameter2, r, CI_low, CI_high, p, t, df_error) %>%
+    mutate(p = ifelse(round(p, 3) == 0, formatC(p, format = "e", digits = 2), as.character(round(p, 3)))) %>%
     mutate(across(where(is.numeric), ~round(.x, 3)))
   print(knitr::kable(res, format = "simple"))
 }
