@@ -75,7 +75,6 @@ org_mod_res <- function(model){
 }
 mod1_res <- org_mod_res(mod)
 
-
 # random slopes
 mod2 <- 
   gam(

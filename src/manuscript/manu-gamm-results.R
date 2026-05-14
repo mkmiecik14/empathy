@@ -13,6 +13,7 @@ library(grid); library(colorspace); library(ggsci); library(scales); library(fle
 library(kableExtra); library(officer)
 
 # Functions ----
+source("fns/predict_link.R")
 source("fns/save_figure.R")
 pts_to_mm <- function(pts) pts / 2.845
 
@@ -52,18 +53,19 @@ y_axis_standardized <- list(
 custom_annotate <- function(x, y, lab){
   geom_res <- 
   annotate(
-    "label", x = x, y = y, label = lab, hjust = 0, 
+    "label", x = x, y = y, label = lab, hjust = 0,
     fill = CONFIG$rdgy[7], label.padding = unit(.5, "lines"),
-    family = CONFIG$font_family, color = CONFIG$font_color, 
-    size = pts_to_mm(CONFIG$minor_font_size), fontface = "italic"
-  ) 
+    family = CONFIG$font_family, color = CONFIG$font_color,
+    size = pts_to_mm(CONFIG$minor_font_size), fontface = "italic",
+    alpha = 0.6
+  )
   return(geom_res)
 }
 
 # creates these in a list for a plot
 cust_annots <- list(
-  custom_annotate(0, 8, "Increased MMH"),
-  custom_annotate(0, -8, "Decreased MMH")
+  custom_annotate(0, 7.8, "Increased MMH"),
+  custom_annotate(0, -7.8, "Decreased MMH")
 )
 
 
@@ -93,7 +95,7 @@ obs_mmh_plot <-
     ) +
   labs(
     x = "Years Since Baseline Visit", 
-    y = "Observed MMH (PC1 Factor Scores)"
+    y = "Observed MMH\n(PC1 Factor Scores)"
     ) +
   y_axis_standardized +
   theme_classic() +
@@ -117,7 +119,7 @@ pred_mmh_time <-
   geom_line(color = ghibli_palettes$MononokeMedium[3], linewidth = CONFIG$lw) +
   labs(
     x = "Years Since Baseline Visit", 
-    y = "Predicted MMH (PC1 Factor Score)"
+    y = "Predicted MMH\n(PC1 Factor Score)"
     ) +
   y_axis_standardized +
   theme_classic() +
@@ -142,7 +144,7 @@ pred_mmh_pp <-
   scale_x_continuous(breaks = seq(0, max_pp, 1)) +
   labs(
     x = "Pelvic Pain", 
-    y = "Predicted MMH (PC1 Factor Score)"
+    y = "Predicted MMH\n(PC1 Factor Score)"
   ) +
   y_axis_standardized +
   theme_classic() +
@@ -153,15 +155,59 @@ pred_mmh_pp <-
     axis.title.y = element_text_major
   )
 
-# ASSEMBLING GAMM RESULTS PLOT
+# Menstrual pain prediction plot
+# First, generate newdata
+new_data <- with(
+  mod_data,
+  expand.grid(
+    subject_id = "theoretical_subject",
+    tanner_breast = mean(tanner_breast),
+    tanner_hair = mean(tanner_hair),
+    yrs_since_baseline = mean(yrs_since_baseline),
+    menst_pain_pv = seq(min(menst_pain_pv), max(menst_pain_pv), length.out = 200),
+    pelvic_pain_pv = mean(pelvic_pain_pv)
+    )
+  )
+# Next, generate predictions
+menst_preds <- predict_link(mod = df$model_res$mod1_res$mod, newdat = new_data)
+
+# Then, plot predictions
+menst_range <- with(
+  mod_data, 
+  data.frame(min = min(menst_pain_pv), max = max(menst_pain_pv))
+)
+pred_menst_pp <- 
+  ggplot(menst_preds, aes(menst_pain_pv, pred_resp)) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_ribbon(
+    aes(ymin = lwr_resp, ymax = upr_resp), 
+    alpha = 1/3, fill = ghibli_palettes$MononokeMedium[6]
+  ) +
+  geom_line(color = ghibli_palettes$MononokeMedium[6], linewidth = CONFIG$lw) +
+  scale_x_continuous(breaks = seq(menst_range$min, menst_range$max, 1)) +
+  labs(
+    x = "Menstrual Pain", 
+    y = "Predicted MMH\n(PC1 Factor Score)"
+  ) +
+  y_axis_standardized +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text_minor,
+    axis.title.x = element_text_major,
+    axis.text.y = element_text_minor,
+    axis.title.y = element_text_major
+  )
+
+
+# ASSEMBLING GAMM RESULTS PLOT =================================================
 
 # plot list
-plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp)
+plots <- list(obs_mmh_plot, pred_mmh_time, pred_mmh_pp, pred_menst_pp)
 
 # putting these together
 fig <- 
-  wrap_plots(plots, ncol = 3) + 
-  plot_annotation(tag_levels = c("A", "B", "C"), tag_suffix = ")") &
+  wrap_plots(plots, ncol = 2) + 
+  plot_annotation(tag_levels = c("A", "B", "C", "D"), tag_suffix = ")") &
   theme(
     plot.tag = element_text(
       size = CONFIG$major_font_size, 
@@ -176,7 +222,7 @@ message("=== SAVING OUT LONG MMH FIGURE ===")
 message("==================================")
 message("")
 f <- file.path("output", "manuscript", "long-mmh-plot")
-save_figure(f = f, p = fig, w = 6.5, h = 3, units = "in", dpi = 300, both = TRUE)
+save_figure(f = f, p = fig, w = 5.5, h = 5, units = "in", dpi = 300, both = TRUE)
 
 # PLOTTING QUARTILE PLOTS ---
 
