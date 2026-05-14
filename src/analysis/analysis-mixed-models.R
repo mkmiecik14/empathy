@@ -226,9 +226,9 @@ p4
 
 # observed quartiles for pelvic and menstrual pain ----
 pain_quartiles <-
-  mod_data %>%
-  select(subject_id, menst_pain_pv, pelvic_pain_pv) %>%
-  distinct() %>%
+  fit2_data %>%
+  as_tibble() %>%
+  distinct(subject_id, menst_pain_pv, pelvic_pain_pv) %>%
   mutate(
     across(
       .cols = contains("pain"),
@@ -246,18 +246,21 @@ quartile_boundaries <- list(
   )
 )
 
+jb <- join_by(subject_id, menst_pain_pv, pelvic_pain_pv)
 pain_quartiles_long <-
-  mod_data %>%
-  left_join(pain_quartiles, join_by(subject_id, menst_pain_pv, pelvic_pain_pv)) %>%
+  pain_quartiles %>%
+  left_join(., mod_data, by = jb) %>%
   select(subject_id, visit, ends_with("q"), PC1) %>%
   pivot_longer(cols = -c(subject_id, visit, PC1)) %>%
-  mutate(value = case_when(
-    value == 1 ~ "low",
-    value %in% c(2:3) ~ "middle",
-    value == 4 ~ "high",
-    .default = NA
-  ))
-
+  mutate(
+    value = case_when(
+      value == 1 ~ "low",
+      value %in% c(2:3) ~ "middle",
+      value == 4 ~ "high",
+      .default = NA
+    )
+  )
+  
 pain_quartiles_sum <-
   pain_quartiles_long %>%
   summarise(
