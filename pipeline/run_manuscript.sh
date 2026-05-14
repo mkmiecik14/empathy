@@ -15,9 +15,9 @@ echo "=== Running manuscript R scripts ==="
 Rscript src/manuscript/manu-table-1.R \
   > "output/manuscript/manu-table-1-console.txt" \
   2> "${LOG_DIR}/manu-table-1_$(date +%H-%M-%S).txt"
-Rscript src/manuscript/manu-gamm-results.R \
-  > "output/manuscript/manu-gamm-results-console.txt" \
-  2> "${LOG_DIR}/manu-gamm-results_$(date +%H-%M-%S).txt"
+Rscript src/manuscript/manu-mixed-model-results.R \
+  > "output/manuscript/manu-mixed-model-results-console.txt" \
+  2> "${LOG_DIR}/manu-mixed-model-results_$(date +%H-%M-%S).txt"
 Rscript src/manuscript/manu-pca-results.R \
   > "output/manuscript/manu-pca-results-console.txt" \
   2> "${LOG_DIR}/manu-pca-results_$(date +%H-%M-%S).txt"

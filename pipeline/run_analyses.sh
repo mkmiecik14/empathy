@@ -39,4 +39,8 @@ Rscript src/analysis/analysis-long-supp-proj.R \
 Rscript src/analysis/analysis-long-supp-proj-simplified.R \
   > "${LOG_DIR}/analysis-long-supp-proj-simplified_$(date +%H-%M-%S).txt" 2>&1
 
+echo "=== Mixed models ==="
+Rscript src/analysis/analysis-mixed-models.R \
+  > "${LOG_DIR}/analysis-mixed-models_$(date +%H-%M-%S).txt" 2>&1
+
 echo "=== Analyses complete ==="
