@@ -54,10 +54,21 @@ mod_data <-
     tanner_hair_wc   = tanner_hair   - tanner_hair_pm
   )
 
+# data to compute grandmean
+gm_data <- mod_data %>% distinct(subject_id, tanner_breast_pm, tanner_hair_pm)
+tanner_breast_gm <- mean(gm_data$tanner_breast_pm)
+tanner_hair_gm <- mean(gm_data$tanner_hair_pm)
+
+# grandmean centered data
+mod_data$tanner_hair_gmc <- mod_data$tanner_hair_pm - tanner_hair_gm
+mod_data$tanner_breast_gmc <- mod_data$tanner_breast_pm - tanner_breast_gm
+
+# mod_data %>% select(subject_id, contains("tanner")) %>% filter(subject_id == unique(mod_data$subject_id)[1])
+
 # RANDOM INTERCEPT MODEL =======================================================
 fit1 <- lmer(
   PC1 ~ 1 +
-    tanner_breast_pm + tanner_breast_wc + tanner_hair_pm + tanner_hair_wc +
+    tanner_breast_gmc + tanner_breast_wc + tanner_hair_gmc + tanner_hair_wc +
     yrs_since_baseline * menst_pain_pv * pelvic_pain_pv +
     (1 | subject_id),
   data = mod_data,
@@ -69,7 +80,7 @@ plot(fit1)
 # RANDOM INTERCEPTS + RANDOM SLOPES MODEL ======================================
 fit2 <- lmer(
   PC1 ~ 1 +
-    tanner_breast_pm + tanner_breast_wc + tanner_hair_pm + tanner_hair_wc +
+    tanner_breast_gmc + tanner_breast_wc + tanner_hair_gmc + tanner_hair_wc +
     yrs_since_baseline * menst_pain_pv * pelvic_pain_pv +
     (1 + yrs_since_baseline | subject_id),
   data = mod_data,
@@ -99,26 +110,32 @@ predict_lmer <- function(model, newdat) {
 fit2_data <- model.frame(fit2)
 
 # reference values: one row per subject to avoid visit-weighting; 0 for _wc
-tanner_ref <- fit2_data %>%
-  distinct(subject_id, tanner_breast_pm, tanner_hair_pm, menst_pain_pv, pelvic_pain_pv) %>%
+tanner_ref <- 
+  fit2_data %>%
+  distinct(
+    subject_id, tanner_breast_gmc, tanner_hair_gmc, menst_pain_pv, pelvic_pain_pv
+  ) %>%
   summarise(
-    tanner_breast_pm = mean(tanner_breast_pm, na.rm = TRUE),
-    tanner_hair_pm   = mean(tanner_hair_pm,   na.rm = TRUE),
-    menst_pain_pv    = mean(menst_pain_pv,    na.rm = TRUE),
-    pelvic_pain_pv   = mean(pelvic_pain_pv,   na.rm = TRUE)
+    menst_pain_pv     = mean(menst_pain_pv,     na.rm = TRUE),
+    pelvic_pain_pv    = mean(pelvic_pain_pv,    na.rm = TRUE)
   ) %>%
   as.list() %>%
-  c(tanner_breast_wc = 0, tanner_hair_wc = 0)
+  c(
+    tanner_breast_wc = 0, 
+    tanner_hair_wc = 0, 
+    tanner_breast_gmc = 0, 
+    tanner_hair_gmc = 0  
+  )
 
 # effect of yrs_since_baseline
 newdata <-
   with(
     fit2_data,
     expand.grid(
-      tanner_breast_pm = tanner_ref$tanner_breast_pm,
-      tanner_breast_wc = tanner_ref$tanner_breast_wc,
-      tanner_hair_pm   = tanner_ref$tanner_hair_pm,
-      tanner_hair_wc   = tanner_ref$tanner_hair_wc,
+      tanner_breast_gmc = tanner_ref$tanner_breast_gmc,
+      tanner_breast_wc  = tanner_ref$tanner_breast_wc,
+      tanner_hair_gmc   = tanner_ref$tanner_hair_gmc,
+      tanner_hair_wc    = tanner_ref$tanner_hair_wc,
       yrs_since_baseline = seq(
         min(yrs_since_baseline), max(yrs_since_baseline), length.out = 200
       ),
@@ -132,10 +149,10 @@ newdata2 <-
   with(
     fit2_data,
     expand.grid(
-      tanner_breast_pm = tanner_ref$tanner_breast_pm,
-      tanner_breast_wc = tanner_ref$tanner_breast_wc,
-      tanner_hair_pm   = tanner_ref$tanner_hair_pm,
-      tanner_hair_wc   = tanner_ref$tanner_hair_wc,
+      tanner_breast_gmc = tanner_ref$tanner_breast_gmc,
+      tanner_breast_wc  = tanner_ref$tanner_breast_wc,
+      tanner_hair_gmc   = tanner_ref$tanner_hair_gmc,
+      tanner_hair_wc    = tanner_ref$tanner_hair_wc,
       yrs_since_baseline = mean(yrs_since_baseline),
       menst_pain_pv  = tanner_ref$menst_pain_pv,
       pelvic_pain_pv = seq(min(pelvic_pain_pv), max(pelvic_pain_pv), length.out = 200)
@@ -147,10 +164,10 @@ newdata3 <-
   with(
     fit2_data,
     expand.grid(
-      tanner_breast_pm = tanner_ref$tanner_breast_pm,
-      tanner_breast_wc = tanner_ref$tanner_breast_wc,
-      tanner_hair_pm   = tanner_ref$tanner_hair_pm,
-      tanner_hair_wc   = tanner_ref$tanner_hair_wc,
+      tanner_breast_gmc = tanner_ref$tanner_breast_gmc,
+      tanner_breast_wc  = tanner_ref$tanner_breast_wc,
+      tanner_hair_gmc   = tanner_ref$tanner_hair_gmc,
+      tanner_hair_wc    = tanner_ref$tanner_hair_wc,
       yrs_since_baseline = mean(yrs_since_baseline),
       menst_pain_pv  = seq(min(menst_pain_pv), max(menst_pain_pv), length.out = 200),
       pelvic_pain_pv = tanner_ref$pelvic_pain_pv
@@ -259,10 +276,10 @@ newdata_pelvic_q <-
   with(
     fit2_data,
     expand.grid(
-      tanner_breast_pm = tanner_ref$tanner_breast_pm,
-      tanner_breast_wc = tanner_ref$tanner_breast_wc,
-      tanner_hair_pm   = tanner_ref$tanner_hair_pm,
-      tanner_hair_wc   = tanner_ref$tanner_hair_wc,
+      tanner_breast_gmc = tanner_ref$tanner_breast_gmc,
+      tanner_breast_wc  = tanner_ref$tanner_breast_wc,
+      tanner_hair_gmc   = tanner_ref$tanner_hair_gmc,
+      tanner_hair_wc    = tanner_ref$tanner_hair_wc,
       yrs_since_baseline = seq(min(yrs_since_baseline), max(yrs_since_baseline), length.out = 200),
       menst_pain_pv  = tanner_ref$menst_pain_pv,
       pelvic_pain_pv = quantile(pelvic_pain_pv, probs = this_probs$pelvic_pain)
@@ -273,10 +290,10 @@ newdata_menst_q <-
   with(
     fit2_data,
     expand.grid(
-      tanner_breast_pm = tanner_ref$tanner_breast_pm,
-      tanner_breast_wc = tanner_ref$tanner_breast_wc,
-      tanner_hair_pm   = tanner_ref$tanner_hair_pm,
-      tanner_hair_wc   = tanner_ref$tanner_hair_wc,
+      tanner_breast_gmc = tanner_ref$tanner_breast_gmc,
+      tanner_breast_wc  = tanner_ref$tanner_breast_wc,
+      tanner_hair_gmc   = tanner_ref$tanner_hair_gmc,
+      tanner_hair_wc    = tanner_ref$tanner_hair_wc,
       yrs_since_baseline = seq(min(yrs_since_baseline), max(yrs_since_baseline), length.out = 200),
       menst_pain_pv  = quantile(menst_pain_pv, probs = this_probs$menst_pain),
       pelvic_pain_pv = tanner_ref$pelvic_pain_pv
