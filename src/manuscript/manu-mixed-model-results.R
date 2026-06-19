@@ -356,10 +356,10 @@ p_table <-
   mutate(
     term = case_when(
       term == "(Intercept)"                                     ~ "Intercept",
-      term == "tanner_breast_gmc"                               ~ "Tanner Stage - Breast (Grand Mean Centered)",
-      term == "tanner_breast_wc"                                ~ "Tanner Stage - Breast (Within-Subject Centered)",
-      term == "tanner_hair_gmc"                                 ~ "Tanner Stage - Hair (Grand Mean Centered)",
-      term == "tanner_hair_wc"                                  ~ "Tanner Stage - Hair (Within-Subject Centered)",
+      term == "tanner_breast_gmc"                               ~ "Tanner Stage - Breast (Between-Subject Effect)",
+      term == "tanner_breast_wc"                                ~ "Tanner Stage - Breast (Within-Subject Change)",
+      term == "tanner_hair_gmc"                                 ~ "Tanner Stage - Hair (Between-Subject Effect)",
+      term == "tanner_hair_wc"                                  ~ "Tanner Stage - Hair (Within-Subject Change)",
       term == "yrs_since_baseline"                              ~ "Time",
       term == "menst_pain_pv"                                   ~ "Menstrual Pain",
       term == "pelvic_pain_pv"                                  ~ "Pelvic Pain",
@@ -388,6 +388,9 @@ ft_p_table <-
   hline(i = 1, j = c(3, 4), border = fp_border(width = 1), part = "header") %>%
   colformat_double(j = c("b", "LL", "UL", "SE", "df", "t"), digits = 3) %>%
   colformat_double(j = "p", digits = 3) %>%
+  add_footer_lines(
+    "Note. CI=confidence interval; LL=lower level; UL=upper level. Between-subject effects for Tanner stage were grand mean centered across participants; within-subject change reflects deviation from each participant's mean Tanner stage (0 = no deviation)."
+  ) %>%
   autofit()
 
 message("=============================")

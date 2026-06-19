@@ -1,11 +1,36 @@
 ---
-title: "[title of manuscript here]: Supplemental Material"
-author: "Authors here"
+title: "Multimodal hypersensitivity across the menarcheal transition is associated with pelvic pain in adolescent girls: a longitudinal study"
+subtitle: "Supplemental Material"
+author:
+  - name: "Matthew J. Kmiecik"
+    affiliations:
+      - ref: "1"
+  - name: "Kevin M. Hellman"
+    affiliations:
+      - ref: "1"
+      - ref: "2"
+  - name: "Sarah E. Darnell"
+    affiliations:
+      - ref: "1"
+  - name: "Frank F. Tu"
+    affiliations:
+      - ref: "1"
+      - ref: "2"
+affiliations:
+  - id: "1"
+    name: "Department of Obstetrics and Gynecology, Endeavor Health, Evanston, IL, USA"
+  - id: "2"
+    name: "Department of Obstetrics and Gynecology, The University of Chicago Pritzker School of Medicine, Chicago, IL, USA"
 date: last-modified
 date-format: "[Last modified:] DD MMM YYYY"
+header-includes:
+  - \usepackage{authblk}
 format:
   pdf:
     toc: true
+    lof: true
+    template-partials:
+      - title.tex
 editor: source
 editor_options: 
   chunk_output_type: console
@@ -34,6 +59,7 @@ load_from_manu <- function(file){
 ```{r}
 #| label: scree-plot
 #| fig-cap: "Scree plot indicating variance explained in each principal component and significance from permutations testing."
+#| fig-scap: "Scree plot of principal component variance explained."
 #| out-width: "100%"
 
 knitr::include_graphics(load_from_manu("scree-plot.png"))
@@ -42,6 +68,7 @@ knitr::include_graphics(load_from_manu("scree-plot.png"))
 ```{r}
 #| label: supp-boxplots
 #| fig-cap: "Boxplots of standardized multimodal hypersensitivity (MMH) testing measures. Participants were separated into low vs. high MMH based on quartiles of factor score loadings on the first principal component (PC1). Low MMH participants were in the bottom quartile and high MMH participants were in the upper quartile. Higher scores indicate greater sensitivity/impairment."
+#| fig-scap: "Boxplots of standardized MMH testing measures by group."
 #| out-width: "100%"
 
 knitr::include_graphics(load_from_manu("supplemental-boxplots.png"))
